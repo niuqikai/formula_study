@@ -3,6 +3,7 @@ import formula_study.Data_input as di
 import pandas as pd
 import networkx as nx
 import numpy as np
+import random as rd
 
 def jaccard_gini(targ_mol_herb):#计算jaccard距离,A为对应靶点成分的数量，药物成分的数量
     herb_mol = di.herb_molecules(filepath , filename)  # 中药对应的成分
@@ -51,7 +52,8 @@ def shortest_distance(herb_mol_target):#计算两味中药之前的平均最短�
             herb2_targets_list = list(set(herb2_targets.dropna()))
             for targ1 in herb1_targets_list:
                 for targ2 in herb2_targets_list:
-                    if targ1 in G.nodes() and targ2 in G.nodes() and G.has_edge(targ1, targ2):
+                    r = rd.random()
+                    if targ1 in G.nodes() and targ2 in G.nodes() and G.has_edge(targ1, targ2) and r>0.1: #同一种疾病下的成为以概率r做为连边
                         distance_list.append(nx.shortest_path_length(G, targ1, targ2))
             if len(distance_list) !=0:
                 with open(filewrite, 'a') as fw:
@@ -71,6 +73,29 @@ def walk_score_algorithm(df_data ,source, target):#计算随机游走的分数�
     df_data = df_data.groupby(target)['walk_score'].sum()
     return df_data.reset_index()
 
+def herb_walk_score(target_molecule):#计算随机游走的数据，对每个中药进行打分。
+    t_m = target_molecule[['TARGET_ID','MOL_ID']].drop_duplicates()# 提取靶点和成分列，第一列为起点列
+    source = 'TARGET_ID'
+    target = 'MOL_ID'
+    t_m['walk_score'] = t_m[source].apply(lambda x: 1.0)#初始化分数
+    mols_score = walk_score_algorithm(t_m, source ,target)  #成分和对应的分数
+    mols_score_dict = {key:values for key, values in zip(mols_score['MOL_ID'], mols_score['walk_score'])}#转换为字典结构
+
+    herb_mols_values = herb_mols[['MOL_ID','herb_cn_name']].drop_duplicates()#去重
+    herb_mols_values['walk_score'] = herb_mols_values['MOL_ID'].apply(lambda x: mols_score_dict[x] if x in mols_score_dict else 0)
+    source = 'MOL_ID'
+    target = 'herb_cn_name'
+    herb_score = walk_score_algorithm(herb_mols_values, source ,target)  #药物和对应的分数
+    #return herb_score
+
+    #加权的分数算法，权重为毎味中药对应的分子数的倒数。
+    h_m_v = herb_mols_values.groupby('herb_cn_name')['MOL_ID'].nunique() #计算
+    herb_score_weight = pd.merge(herb_score, h_m_v.reset_index() ,how = 'left' ,on = 'herb_cn_name')#加权
+    herb_score_weight['score_weight'] =  herb_score_weight.apply(lambda x : (1.0/x['MOL_ID'] * x['walk_score']),axis=1)#加权 除以毎个味中药在数据库里面的成分
+    #herb_score_weight.to_csv('herb_score_weight.csv')
+    return herb_score_weight
+    #herb_score.to_csv('herb_score.csv')
+
 if __name__ == '__main__':
     filepath = 'D:\\ctm_data\\TCMSP-数据\\'
     filename = 'TCMSP_DB_加工.xlsx'
@@ -80,18 +105,4 @@ if __name__ == '__main__':
     target_molecule = di.target_mol(filepath, filename, tar='0') #和疾病关联的靶点以及成分
     herb_mols =  di.herb_molecules(filepath, filename) #中药对应的成分
 
-
-    t_m = target_molecule[['TARGET_ID','MOL_ID']].drop_duplicates()# 提取靶点和成分列，第一列为起点列
-    source = 'TARGET_ID'
-    target = 'MOL_ID'
-    t_m['walk_score'] = t_m[source].apply(lambda x: 1.0)#初始化分数
-    mols_score = walk_score_algorithm(t_m, source ,target)  #成分和对应的分数
-    mols_score_dict = {key:values for key, values in zip(mols_score['MOL_ID'], mols_score['walk_score'])}#转换为字典结构
-
-
-    herb_mols_values = herb_mols[['MOL_ID','herb_cn_name']].drop_duplicates()
-    herb_mols_values['walk_score'] = herb_mols_values['MOL_ID'].apply(lambda x: mols_score_dict[x] if x in mols_score_dict else 0)
-    source = 'MOL_ID'
-    target = 'herb_cn_name'
-    herb_score = walk_score_algorithm(herb_mols_values, source ,target)  #药物和对应的分数
-    herb_score.to_csv('herb_score.csv')
+    shortest_distance(herb_mol_target)
