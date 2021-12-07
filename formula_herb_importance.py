@@ -69,8 +69,6 @@ def shortest_distance(herb_mol_target):#计算两味中药之前的平均最短�
             herb2_targets_list = list(set(herb2_targets.dropna()))
             Sa = Sab(G , herb1_targets_list)
             Sb = Sab(G , herb2_targets_list)
-            print(Sa)
-            print(Sb)
             herb1_herb2_targets_list = []
             herb1_herb2_targets_list.extend(herb1_targets_list)
             herb1_herb2_targets_list.extend(herb2_targets_list)
@@ -94,6 +92,52 @@ def shortest_distance(herb_mol_target):#计算两味中药之前的平均最短�
                     fw.write(str(S_ab - (Sa + Sb)/2.0))
                     fw.write('\n')
                     fw.flush()
+
+def writelisttodata(filename , datalist):#将列表数据写入文本
+    with open(filename,'a') as fl:
+        for dl in range(len(datalist) - 1):
+            fl.write(str(datalist[dl]))
+            fl.write(',')
+        fl.write(str(datalist[-1]))
+        fl.write('\n')
+        fl.flush()
+
+
+#def write_to_file(filename , valuelist):
+def formula_generate_algorithm(herb_score_dict , pair_score_dict):#生成组方的核心算法
+    pair_seed = pair_score_dict.keys()
+
+    for (herb1 ,herb2) in pair_seed: #基于一组药对，衍生一张方子
+        formula_list = [herb1 ,herb2]
+        before_score = herb_score_dict[herb1] + herb_score_dict[herb2] + pair_score_dict[(herb1,herb2)]
+
+    #for h in herb_score_dict.keys():  #基于一味中药衍生一张方子
+    #    formula_list = [h]
+    #    before_score = herb_score_dict[h]
+
+        max_score = 0 #组成的方剂的分数最大值
+        insert_herb = ''
+        max_herb_score = 0 # 下一个插入的中药中，最大的分数
+        while(len(formula_list) < 11):
+            for herb in herb_score_dict.keys():
+                if herb not in formula_list:
+                    herb_score_insert = herb_score_dict[herb]#新加入的中药分数
+                    pair_score = 0
+                    for hb in formula_list :
+                        if (herb, hb) in pair_score_dict:#药物组合的分数
+                            pair_score = pair_score + pair_score_dict[(herb,hb)]
+                    if before_score + herb_score_insert + pair_score > max_herb_score :
+                        max_herb_score = before_score + herb_score_insert + pair_score
+                        insert_herb = herb
+            if max_herb_score > before_score:
+                formula_list.append(insert_herb)
+                before_score = max_herb_score
+                max_herb_score = 0
+            else:
+                break
+        formula_list.append(before_score)
+        writelisttodata('formula_pair_score.csv',formula_list)
+
 
 def walk_score_algorithm(df_data ,source, target):#计算二分网络随机游走的分数，df_data为二分网矩阵，source target为源和目标,walk_score为随机游走得分，初始化为1
     t_m_group = dict(df_data.groupby(source)[target].nunique())
@@ -167,4 +211,18 @@ if __name__ == '__main__':
     target_molecule = di.target_mol(filepath, filename, tar='0') #和疾病关联的靶点以及成分
     herb_mols =  di.herb_molecules(filepath, filename) #中药对应的成分
 
-    shortest_distance(herb_mol_target)
+
+    filepath = 'D:\\network_ctm\\formula_study\\data\\'
+    filename = 'result.xlsx'
+    herb_score = 'herb_score_9times'
+    pair_score = 'pair_score'
+
+    herb_s = di.data_from_excel_sheet(filepath + filename,herb_score)
+    h_s = herb_s[['herb_cn_name','walk_score']]
+    h_s_dict = {key:values for key, values in zip(h_s['herb_cn_name'], h_s['walk_score'])}#转换为字典结构
+
+    pair_s = di.data_from_excel_sheet(filepath + filename, pair_score)
+    p_s = pair_s[['herb1','herb2','sab']]
+    p_s_dict = {(key1 ,key2):values for key1, key2 ,values in zip(p_s['herb1'], p_s['herb2'], p_s['sab'])}#转换为字典结构
+
+    formula_generate_algorithm(h_s_dict, p_s_dict)
