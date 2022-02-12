@@ -37,8 +37,8 @@ def herb_herb_jaccard_gini(herb_mol_target):#计算中药与中药之间成分�
         herb_b_tar_vector = dict_herb_tar_vector[herb2]
         herb_a_mol_vector_normal = dict_herb_mol_vector_normal[herb1]
         herb_b_mol_vector_normal = dict_herb_mol_vector_normal[herb2]
-        herb_a_mol_tar_normal = dict_herb_tar_vector_normal[herb1]
-        herb_b_mol_tar_normal = dict_herb_tar_vector_normal[herb2]
+        herb_a_tar_vector_normal = dict_herb_tar_vector_normal[herb1]
+        herb_b_tar_vector_normal = dict_herb_tar_vector_normal[herb2]
 
         #根据成分计算各种指标
         A_mol_num = herb_a['MOL_ID'].nunique()
@@ -61,13 +61,13 @@ def herb_herb_jaccard_gini(herb_mol_target):#计算中药与中药之间成分�
         else:
             tar_jaccard_herbs = float(A_B_tar_num) / h_h_m['TARGET_ID'].nunique()
             tar_gini_herb = float(A_B_tar_num) / min(A_tar_num, B_tar_num)
-        if herb_a_mol_tar_normal*herb_b_mol_tar_normal == 0:
+        if herb_a_tar_vector_normal*herb_b_tar_vector_normal == 0:
             cos_tar_a_b = 0
         else:
-            cos_tar_a_b = np.dot(herb_a_tar_vector,herb_b_tar_vector)/(herb_a_mol_tar_normal*herb_b_mol_tar_normal)
+            cos_tar_a_b = np.dot(herb_a_tar_vector,herb_b_tar_vector)/(herb_a_tar_vector_normal*herb_b_tar_vector_normal)
         datalist = [herb1,herb2,mol_jaccard_herbs,mol_gini_herb,tar_jaccard_herbs,tar_gini_herb,cos_mol_a_b,cos_tar_a_b]
         filename = 'herb_herb_walkscore_mol_jaccard_gini.csv'
-        writelisttodata(filename, datalist)
+        #writelisttodata(filename, datalist)
 
 def get_all_herb_mol_tar_vector(herb_mol_target):#毎味中药的成分和靶点向量
     herbs_name = list(herb_mol_target['herb_cn_name'].unique())#所有的中药名称
@@ -78,6 +78,7 @@ def get_all_herb_mol_tar_vector(herb_mol_target):#毎味中药的成分和靶点
     dict_herb_mol_vector_normal = {}
     dict_herb_tar_vector_normal = {}
 
+    '''
     #如果计算中药向量，使用随机随机游走方法则加上这段
     #成分
     t_m = herb_mol_target[['herb_cn_name','MOL_ID']].drop_duplicates()# 提取靶点和成分列，第一列为起点列
@@ -90,6 +91,7 @@ def get_all_herb_mol_tar_vector(herb_mol_target):#毎味中药的成分和靶点
     df_data = walk_score_algorithm(m_t, 'MOL_ID', 'TARGET_ID')
     m_t_dict = {key:values for key, values in zip(df_data['TARGET_ID'], df_data['walk_score'])}
     #如果计算中药向量，使用随机随机游走方法则加上这段
+    '''
 
     for i in range(len(herbs_name)):
         herb_mol_vector = [0 for _ in range(len(mols_vector))]
@@ -100,14 +102,15 @@ def get_all_herb_mol_tar_vector(herb_mol_target):#毎味中药的成分和靶点
 
         for j in range(len(herb_mol_vector)):
             if mols_vector[j] in herb_i_mols:
-                herb_mol_vector[j] = h_w_dict[mols_vector[j]] #1 #随机游走分数，否则默认为1
+                herb_mol_vector[j] = 1 ##h_w_dict[mols_vector[j]] #1 #随机游走分数，否则默认为1
         for k in range(len(herb_tar_vector)):
             if tars_vector[k] in herb_i_tars:
-                herb_tar_vector[k] = m_t_dict[tars_vector[k]] #1 #随机游走分数，否则默认为1
+                herb_tar_vector[k] = 1 #m_t_dict[tars_vector[k]] #1 #随机游走分数，否则默认为1
         dict_herb_mol_vector[herbs_name[i]] = herb_mol_vector
         dict_herb_tar_vector[herbs_name[i]] = herb_tar_vector
         dict_herb_mol_vector_normal[herbs_name[i]] = np.linalg.norm(herb_mol_vector)
         dict_herb_tar_vector_normal[herbs_name[i]] = np.linalg.norm(herb_tar_vector)
+        print(herbs_name[i],herb_mol_vector,herb_tar_vector)
     return dict_herb_mol_vector,dict_herb_tar_vector,dict_herb_mol_vector_normal,dict_herb_tar_vector_normal
 
 
@@ -159,6 +162,7 @@ def Sab(G , nodes):
 def shortest_distance(herb_mol_target):#计算两味中药之前的平均最短路径
     filewrite = 'distance.csv'
     herbs = list(herb_mol_target['herb_cn_name'].unique())
+    herbs_pair_sab = {}
     G = di.Graph_from_data()
     for i in range(len(herbs)-1):
         for j in range(i+1 , len(herbs) ):
@@ -181,6 +185,7 @@ def shortest_distance(herb_mol_target):#计算两味中药之前的平均最短�
                     if targ1 in G.nodes() and targ2 in G.nodes() and G.has_edge(targ1, targ2): #同一种疾病下的成为
                         distance_list.append(nx.shortest_path_length(G, targ1, targ2))
             if len(distance_list) !=0:
+                '''
                 with open(filewrite, 'a') as fw:
                     fw.write(str(herbs[i]))
                     fw.write(",")
@@ -193,6 +198,9 @@ def shortest_distance(herb_mol_target):#计算两味中药之前的平均最短�
                     fw.write(str(S_ab - (Sa + Sb)/2.0))
                     fw.write('\n')
                     fw.flush()
+                '''
+                herbs_pair_sab[str(herbs[i])+str(herbs[j])] = S_ab - (Sa + Sb)/2.0
+    return herbs_pair_sab
 
 def writelisttodata(filename , datalist):#将列表数据写入文本
     with open(filename,'a') as fl:
@@ -329,4 +337,4 @@ if __name__ == '__main__':
     p_s_dict = {(key1 ,key2):values for key1, key2 ,values in zip(p_s['herb1'], p_s['herb2'], p_s['cos_mol'])}#转换为字典结构
 
     #herb_herb_jaccard_gini(herb_mol_target)
-
+    get_all_herb_mol_tar_vector(herb_mol_target)

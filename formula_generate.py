@@ -35,7 +35,7 @@ def compute_formula_score(formula_list , herb_score_dict, pair_num_dict):
                 elif str(formula_list[herb_j])+str(formula_list[herb_i]) in pair_num_dict:
                     formula_score += herb_score_dict[formula_list[herb_i]] * herb_score_dict[formula_list[herb_j]] * pair_num_dict[str(formula_list[herb_j])+str(formula_list[herb_i])]
             else:
-                formula_score = formula_score - herb_score_dict[formula_list[herb_i]] * herb_score_dict[formula_list[herb_j]]
+                formula_score = formula_score #- herb_score_dict[formula_list[herb_i]] * herb_score_dict[formula_list[herb_j]]
     return formula_score/len(formula_list)#(len(formula_list)*len(formula_list))
 
 def is_same_herb_in_formula(formulalist):#判断方剂里面是否有重复的中药
@@ -81,6 +81,7 @@ def Genetic_Algorithm(formulas_score_dict,herb_score_dict,herb_pair_from_data,fo
     for i in range(int(len(formulas_score_dict)/2)):
         new_formulas_score_list1.append(formulas_score_dict[i])
     formulas_num = len(new_formulas_score_list1)
+    rd.shuffle(new_formulas_score_list1)
     for i in range(0,formulas_num,2):
         (scorei,formulai) = new_formulas_score_list1[i]
         (scorej,formulaj) = new_formulas_score_list1[i+1]
@@ -91,12 +92,12 @@ def Genetic_Algorithm(formulas_score_dict,herb_score_dict,herb_pair_from_data,fo
         rd.shuffle(formulak)
         #组成新的方子,交叉变异
         formula1 = formulak[0:int(len(formulak)/2)]
-        formula1 = variation(formula1,0.5,herb_score_dict)#变异，变异系数0.01
+        formula1 = variation(formula1,0.05,herb_score_dict)#变异，变异系数0.05
         formula1 = sorted(formula1)#相同的方剂序列一致
         formula1_list = (compute_formula_score(formula1, herb_score_dict, herb_pair_from_data)* 10000,formula1)
 
         formula2 = formulak[int(len(formulak)/2):len(formulak)]
-        formula2 = variation(formula2,0.5,herb_score_dict)#变异，变异系数0.01
+        formula2 = variation(formula2,0.05,herb_score_dict)#变异，变异系数0.05
         formula2 = sorted(formula2)
         formula2_list = (compute_formula_score(formula2, herb_score_dict, herb_pair_from_data) *10000,formula2)
         if is_same_herb_in_formula(formula1):
@@ -133,14 +134,16 @@ if __name__ == '__main__':
 
     formula_nums = 1000
     filepath = 'D:\\ctm_data\\'
-    filename = '中成药数据库.csv'
+    filename = '叶天士新.csv'
     #filename = '第一批100首-药物组成.csv'
-
+    #filename = '中成药数据库.csv'
 
     rows_list = generate_formula_list(formula_nums)#随机生成方剂中中药数目
-    herb_pair_from_data = hpff.herb_pair_score_from_data(filepath,filename)
+    herb_pair_from_data = hpff.herb_pair_score_from_data(filepath,filename,herb_mols)
     formula_score_dict = {}
     formulas = innit_formula_seed(herb_score_dict, formula_nums, rows_list)
+    #test_formula = ['茯苓','人参','桂枝','当归']
+    #print(compute_formula_score(test_formula, herb_score_dict, herb_pair_from_data)*10000)
 
     for formula_list in formulas:
         formula_score_dict[compute_formula_score(formula_list, herb_score_dict, herb_pair_from_data)*10000] = formula_list
@@ -151,6 +154,7 @@ if __name__ == '__main__':
 
     max_score = -99999
     for k in range(1000):
+        print("第"+str(k)+"迭代")
         new_score_dict = Genetic_Algorithm(formula_score_dict,herb_score_dict,herb_pair_from_data,formula_nums)
         formula_score_dict = new_score_dict
 

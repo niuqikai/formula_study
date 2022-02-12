@@ -3,6 +3,13 @@
 import pandas as pd
 import networkx as nx
 import random as rd
+
+filepath = 'D:\\ctm_data\\TCMSP-数据\\'
+filename = 'TCMSP_DB_加工.xlsx'
+disease_t = 'v_Targets_Diseases'
+disease_file = 'D:\\network_ctm\\formula_study\\diseasename\\diseasename_HeartFailure.csv'
+
+
 def datafromcsv(fileapath):
     df = pd.DataFrame(fileapath)
     return df
@@ -12,14 +19,11 @@ def data_from_excel_sheet(filepath, st_name):
     return df
 
 def disease_target(filepath , filename):#根据疾病名称读取疾病，靶点矩阵,疾病名称放在diseasename.csv里面
-    disease_t = 'v_Targets_Diseases'
     disease_targ = data_from_excel_sheet(filepath + filename, disease_t)  # 计算中药对应的成分
-    #disease_file = 'ra.csv'
-    disease_file = 'diseasename_cancer.csv'
 
     disease_list = pd.read_csv(disease_file, sep = '#')
     print(disease_list)
-    disease_tar =disease_targ[disease_targ['disease_name'].isin(list(disease_list['disease_name']))]
+    disease_tar = disease_targ[disease_targ['disease_name'].isin(list(disease_list['disease_name']))]
     return disease_tar
 
 def target_mol(filepath , filename, tar = 'all'): #根据指定的靶点找出相对应的成分，all为默认的全量数据
@@ -40,14 +44,16 @@ def targets_mol_herb(filepath, filename):#生成目标靶点对应的成分和�
     targ_mol_herb = pd.merge(target_molecules, mol_herb, how = 'left',on= 'MOL_ID') #将疾病有关的靶点 成分 中药进行关联
     return targ_mol_herb
 
+def disease_targetname(filepath , filename):#根据疾病确定靶点名称
+    dt = disease_target(filepath, filename)
+    return dt[['disease_name','target_name']]
+
 def herb_molecules(filepath , filename):#计算中药和成分对应的矩阵
     herb_m = 'v_Herbs_Molecules'
     herb_mol = data_from_excel_sheet(filepath + filename, herb_m)  # 计算中药对应的成分
     return herb_mol
 
 def Graph_from_data():# 将同一疾病的靶点连线，构成图
-    filepath = 'D:\\ctm_data\\TCMSP-数据\\'
-    filename = 'TCMSP_DB_加工.xlsx'
     sheet_name = 'v_Targets_Diseases'
     tag_id = 'TARGET_ID'
     dis_id = 'disease_ID'
@@ -81,13 +87,13 @@ def data_from_excel_graph(filepath, st_name, tag_id ,disease_id):#根据Excel生
     #disease_ID
     #TARGET_ID
     df = pd.read_excel(filepath, st_name)
-    nodes_list = list(set(df['target_ID']))
+    nodes_list = list(set(df['TARGET_ID']))
     edges_list = []
     G = nx.Graph()
     #G.add_edges_from(edges_list)
     r = rd.random()
     for dis_id in df['disease_ID'].unique():
-        tag_s = df[df['disease_ID'] == str(dis_id)]['target_ID']
+        tag_s = df[df['disease_ID'] == str(dis_id)]['TARGET_ID']
 
         if len(tag_s.to_list()) > 1:
             for i in range(len(tag_s.to_list()) - 2):
