@@ -134,9 +134,9 @@ if __name__ == '__main__':
 
     formula_nums = 1000
     filepath = 'D:\\ctm_data\\'
-    filename = '叶天士新.csv'
+    #filename = '叶天士新.csv'
     #filename = '第一批100首-药物组成.csv'
-    #filename = '中成药数据库.csv'
+    filename = '中成药数据库.csv'
 
     rows_list = generate_formula_list(formula_nums)#随机生成方剂中中药数目
     herb_pair_from_data = hpff.herb_pair_score_from_data(filepath,filename,herb_mols)

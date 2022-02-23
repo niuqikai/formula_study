@@ -41,12 +41,13 @@ def targets_mol_herb(filepath, filename):#生成目标靶点对应的成分和�
     target_molecules = target_mol(filepath ,filename, 0)  # 靶点成分对应关系
     mol_herb = herb_molecules(filepath , filename)  # 成分和中药的对应关系
 
-    targ_mol_herb = pd.merge(target_molecules, mol_herb, how = 'left',on= 'MOL_ID') #将疾病有关的靶点 成分 中药进行关联
+    targ_mol_herb = pd.merge(target_molecules, mol_herb, how = 'inner',on= 'MOL_ID') #将疾病有关的靶点 成分 中药进行关联
+    #targ_mol_herb.to_csv('targ_mol_herb_left.csv')
     return targ_mol_herb
 
 def disease_targetname(filepath , filename):#根据疾病确定靶点名称
     dt = disease_target(filepath, filename)
-    return dt[['disease_name','target_name']]
+    return dt[['disease_name','target_name','TARGET_ID']]
 
 def herb_molecules(filepath , filename):#计算中药和成分对应的矩阵
     herb_m = 'v_Herbs_Molecules'
@@ -64,7 +65,8 @@ def herb_mol_targets(filepath,filename):#计算每种中药对应的成分和靶
     herb_mol = herb_molecules(filepath , filename)  # 计算中药对应的成分
     mol_target = target_mol(filepath , filename)  # 成分对应的靶点
 
-    herb_mol_target = pd.merge(herb_mol, mol_target,how = 'left',on= 'MOL_ID') #将中药 成分和成分对应的靶点进行关联
+    herb_mol_target = pd.merge(herb_mol, mol_target,how = 'inner',on= 'MOL_ID') #将中药 成分和成分对应的靶点进行关联
+    #herb_mol_target.to_csv('herb_mol_target_inner.csv')
     return herb_mol_target
 
 def targets_disease(filepath,filename):#获取所有靶点对应的疾病
@@ -106,4 +108,5 @@ def data_from_excel_graph(filepath, st_name, tag_id ,disease_id):#根据Excel生
     return G
     #largest_cc = max(nx.connected_components(G), key=len) #最大连通子图包含的节点
 
-
+#if  __name__ == '__main__':
+    #herb_mol_targets(filepath, filename)

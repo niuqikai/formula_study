@@ -22,8 +22,8 @@ def herb_disease_jaccard_gini(targ_mol_herb):#计算中药和疾病之前的jacc
 
 def herb_herb_jaccard_gini(herb_mol_target):#计算中药与中药之间成分和靶点之间的
     herb_pairs = all_herb_pairs(herb_mol_target)
-    mols_vector = list(herb_mol_target['MOL_ID'])
-    tars_vector = list(herb_mol_target['TARGET_ID'])
+    mols_vector = list(herb_mol_target['MOL_ID'].dropna().unique())
+    tars_vector = list(herb_mol_target['TARGET_ID'].dropna().unique())
     dict_herb_mol_vector,dict_herb_tar_vector,dict_herb_mol_vector_normal,dict_herb_tar_vector_normal = get_all_herb_mol_tar_vector(herb_mol_target)
     for (herb1,herb2) in herb_pairs:
         h_h_m = herb_mol_target[herb_mol_target['herb_cn_name'].isin([herb1,herb2])]
@@ -41,10 +41,10 @@ def herb_herb_jaccard_gini(herb_mol_target):#计算中药与中药之间成分�
         herb_b_tar_vector_normal = dict_herb_tar_vector_normal[herb2]
 
         #根据成分计算各种指标
-        A_mol_num = herb_a['MOL_ID'].nunique()
-        B_mol_num = herb_b['MOL_ID'].nunique()
-        A_B_mol_num = A_mol_num + B_mol_num - h_h_m['MOL_ID'].nunique()#中药A和中药B的交集
-        mol_jaccard_herbs = float(A_B_mol_num)/h_h_m['MOL_ID'].nunique()
+        A_mol_num = herb_a['MOL_ID'].dropna().nunique()
+        B_mol_num = herb_b['MOL_ID'].dropna().nunique()
+        A_B_mol_num = A_mol_num + B_mol_num - h_h_m['MOL_ID'].dropna().nunique()#中药A和中药B的交集
+        mol_jaccard_herbs = float(A_B_mol_num)/h_h_m['MOL_ID'].dropna().nunique()
         mol_gini_herb = float(A_B_mol_num)/min(A_mol_num,B_mol_num)
         if herb_a_mol_vector_normal*herb_b_mol_vector_normal == 0:
             cos_mol_a_b = 0
@@ -52,14 +52,14 @@ def herb_herb_jaccard_gini(herb_mol_target):#计算中药与中药之间成分�
             cos_mol_a_b = np.dot(herb_a_mol_vector,herb_b_mol_vector)/(herb_a_mol_vector_normal*herb_b_mol_vector_normal)
 
         #根据靶点计算各种指标
-        A_tar_num = herb_a['TARGET_ID'].nunique()
-        B_tar_num = herb_b['TARGET_ID'].nunique()
-        A_B_tar_num = A_tar_num + B_tar_num - h_h_m['TARGET_ID'].nunique()  # 中药A和中药B的交集
+        A_tar_num = herb_a['TARGET_ID'].dropna().nunique()
+        B_tar_num = herb_b['TARGET_ID'].dropna().nunique()
+        A_B_tar_num = A_tar_num + B_tar_num - h_h_m['TARGET_ID'].dropna().nunique()  # 中药A和中药B的交集
         if float(A_B_tar_num) == 0:
             tar_jaccard_herbs = 0
             tar_gini_herb = 0
         else:
-            tar_jaccard_herbs = float(A_B_tar_num) / h_h_m['TARGET_ID'].nunique()
+            tar_jaccard_herbs = float(A_B_tar_num) / h_h_m['TARGET_ID'].dropna().nunique()
             tar_gini_herb = float(A_B_tar_num) / min(A_tar_num, B_tar_num)
         if herb_a_tar_vector_normal*herb_b_tar_vector_normal == 0:
             cos_tar_a_b = 0
@@ -67,12 +67,12 @@ def herb_herb_jaccard_gini(herb_mol_target):#计算中药与中药之间成分�
             cos_tar_a_b = np.dot(herb_a_tar_vector,herb_b_tar_vector)/(herb_a_tar_vector_normal*herb_b_tar_vector_normal)
         datalist = [herb1,herb2,mol_jaccard_herbs,mol_gini_herb,tar_jaccard_herbs,tar_gini_herb,cos_mol_a_b,cos_tar_a_b]
         filename = 'herb_herb_walkscore_mol_jaccard_gini.csv'
-        #writelisttodata(filename, datalist)
+        writelisttodata(filename, datalist)
 
 def get_all_herb_mol_tar_vector(herb_mol_target):#毎味中药的成分和靶点向量
-    herbs_name = list(herb_mol_target['herb_cn_name'].unique())#所有的中药名称
-    mols_vector = list(herb_mol_target['MOL_ID'])
-    tars_vector = list(herb_mol_target['TARGET_ID'])
+    herbs_name = list(herb_mol_target['herb_cn_name'].dropna().unique())#所有的中药名称
+    mols_vector = list(herb_mol_target['MOL_ID'].dropna().unique())
+    tars_vector = list(herb_mol_target['TARGET_ID'].dropna().unique())
     dict_herb_mol_vector = {}
     dict_herb_tar_vector = {}
     dict_herb_mol_vector_normal = {}
@@ -97,20 +97,24 @@ def get_all_herb_mol_tar_vector(herb_mol_target):#毎味中药的成分和靶点
         herb_mol_vector = [0 for _ in range(len(mols_vector))]
         herb_tar_vector = [0 for __ in range(len(tars_vector))]
         herb_i = herb_mol_target[herb_mol_target['herb_cn_name']==herbs_name[i]]
-        herb_i_mols = list(herb_i['MOL_ID'])
-        herb_i_tars = list(herb_i['TARGET_ID'])
+        #herb_i = herb_i[['herb_cn_name','MOL_ID','TARGET_ID']].dropna()
+        herb_i_mols = list(set(herb_i['MOL_ID'].dropna()))
+        herb_i_tars = list(set(herb_i['TARGET_ID'].dropna()))
 
+        count_mol = 0
+        count_tar = 0
         for j in range(len(herb_mol_vector)):
             if mols_vector[j] in herb_i_mols:
                 herb_mol_vector[j] = 1 ##h_w_dict[mols_vector[j]] #1 #随机游走分数，否则默认为1
+                count_mol = count_mol + 1
         for k in range(len(herb_tar_vector)):
             if tars_vector[k] in herb_i_tars:
                 herb_tar_vector[k] = 1 #m_t_dict[tars_vector[k]] #1 #随机游走分数，否则默认为1
+                count_tar = count_tar + 1
         dict_herb_mol_vector[herbs_name[i]] = herb_mol_vector
         dict_herb_tar_vector[herbs_name[i]] = herb_tar_vector
         dict_herb_mol_vector_normal[herbs_name[i]] = np.linalg.norm(herb_mol_vector)
         dict_herb_tar_vector_normal[herbs_name[i]] = np.linalg.norm(herb_tar_vector)
-        print(herbs_name[i],herb_mol_vector,herb_tar_vector)
     return dict_herb_mol_vector,dict_herb_tar_vector,dict_herb_mol_vector_normal,dict_herb_tar_vector_normal
 
 
@@ -274,8 +278,8 @@ def walk_score_algorithm(df_data ,source, target):#计算二分网络随机游�
     return df_data
 
 
-def herb_walk_score_interation(target_molecule,herb_mols):#计算随机游走的数据，对每个中药进行打分。迭代n次
-    t_m = target_molecule[['TARGET_ID','MOL_ID']].drop_duplicates()# 提取靶点和成分列，第一列为起点列
+def herb_walk_score_interation(targets_mol_herb):#计算随机游走的数据，对每个中药进行打分。迭代n次
+    t_m = targets_mol_herb[['TARGET_ID','MOL_ID']].drop_duplicates()# 提取靶点和成分列，第一列为起点列
     t_m['walk_score'] = t_m['TARGET_ID'].apply(lambda x: 1.0)  # 初始化分数
     mols_score = ''
     source = 'TARGET_ID'
@@ -286,7 +290,7 @@ def herb_walk_score_interation(target_molecule,herb_mols):#计算随机游走的
     mols_score = tm
     mols_score_dict = {key:values for key, values in zip(mols_score['MOL_ID'], mols_score['walk_score'])}#转换为字典结构
 
-    herb_mols_values = herb_mols[['MOL_ID','herb_cn_name']].drop_duplicates()#去重
+    herb_mols_values = targets_mol_herb[['MOL_ID','herb_cn_name']].drop_duplicates()#去重
     herb_mols_values['walk_score'] = herb_mols_values['MOL_ID'].apply(lambda x: mols_score_dict[x] if x in mols_score_dict else 0)
     herb_score = ''
     source = 'MOL_ID'
@@ -337,4 +341,5 @@ if __name__ == '__main__':
     p_s_dict = {(key1 ,key2):values for key1, key2 ,values in zip(p_s['herb1'], p_s['herb2'], p_s['cos_mol'])}#转换为字典结构
 
     #herb_herb_jaccard_gini(herb_mol_target)
-    get_all_herb_mol_tar_vector(herb_mol_target)
+    #get_all_herb_mol_tar_vector(herb_mol_target)
+    #herb_mol_target.to_csv("herb_mol_target.csv")

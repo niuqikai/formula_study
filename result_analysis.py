@@ -24,13 +24,15 @@ def herb_mols_targs_score(targ_mol_herb,herb_score):#针对特定疾病的中药
     mols_tars_score_num = pd.merge(mols_tars_num,herb_score,how = 'left',on= 'herb_cn_name').reset_index()
     mols_tars_score_num.to_csv('heartdisease_mols_tars_score_num.csv')
 
-if __name__ == '__main__':
+if  __name__ == '__main__':
     filepath = 'D:\\ctm_data\\TCMSP-数据\\'
     filename = 'TCMSP_DB_加工.xlsx'
 
     target_molecule = di.target_mol(filepath, filename, tar='0')#获取疾病对应的靶点和成分，tar=0 表示制定疾病的靶点和成分
     herb_mols =  di.herb_molecules(filepath, filename) #中药对应的成分
-    herb_score = fhi.herb_walk_score_interation(target_molecule,herb_mols)#计算对应的药物分数
+    targets_mol_herb = di.targets_mol_herb(filepath,filename)#中药靶点成分 inner
+
+    herb_score = fhi.herb_walk_score_interation(targets_mol_herb)#计算对应的药物分数
     herb_score = herb_score[['herb_cn_name','walk_score']].drop_duplicates()
 
     targ_mol_herb = di.targets_mol_herb(filepath,filename)#疾病靶点对应的成分和中药
@@ -59,14 +61,14 @@ if __name__ == '__main__':
 
     #si1 疾病和疾病对应的靶点
     #disease_targ_name = di.disease_targetname(filepath, filename)
-    #disease_targ_name.to_csv('heart_disease_name.csv')
+    #disease_targ_name.to_csv('astha_name.csv')
     #print(disease_targ_name)
 
     #1 中药对应的疾病靶点数量、成分数量和得分
-    herb_mols_targs_score(targ_mol_herb, herb_score)
+    #herb_mols_targs_score(targ_mol_herb, herb_score)
 
-    #药物配伍得分和
-
+    #2药物配伍得分和jacard分数等
+    fhi.herb_herb_jaccard_gini(herb_mol_target)
 
     '''
     for formula_list in formulas:
