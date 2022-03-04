@@ -340,6 +340,7 @@ if __name__ == '__main__':
     p_s = pair_s[['herb1','herb2','cos_mol']]
     p_s_dict = {(key1 ,key2):values for key1, key2 ,values in zip(p_s['herb1'], p_s['herb2'], p_s['cos_mol'])}#转换为字典结构
 
+
     #herb_herb_jaccard_gini(herb_mol_target)
     #get_all_herb_mol_tar_vector(herb_mol_target)
     #herb_mol_target.to_csv("herb_mol_target.csv")
