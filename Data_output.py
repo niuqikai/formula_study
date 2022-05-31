@@ -41,3 +41,24 @@ def writedicttodata(filename , datadict):#将字典数据写入文本
                 fl.write('\n')
             except:
                 pass
+
+def writeformulatodata(filename,datadict):#
+    with open(filename,'a') as fl:
+        for dl in datadict.keys():
+            try:
+                fl.write(str(dl))
+                fl.write(",")
+                for value in datadict[dl]:
+                    #print(value)
+                    fl.write(str(value))
+                    fl.write(",")
+                fl.write('\n')
+            except:
+                pass
+
+def writedatalisttodata(filename,datalist):
+    with open(filename,'a') as fl:
+        for dl in datalist:
+            fl.write(str(dl))
+            fl.write(",")
+        fl.write('\n')

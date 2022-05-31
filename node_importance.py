@@ -1,36 +1,45 @@
 import networkx as nx
 import copy
+import os
 
 #根据文本中的边连接获取整个网络,返回所有节点和连边
-def getNodeEdgesfromfile(file_path_name):
-    nodes_list = []
-    edges_list = []
-    with open(file_path_name) as fpn:
-        for line in fpn:
-            lines = str(line).split(',')
-            if lines[0].strip() not in nodes_list:
-                nodes_list.append(lines[0].strip())
-            if lines[1].strip() not in nodes_list:
-                nodes_list.append(lines[1].strip())
-
-            if lines[0].strip() != lines[1].strip():
-                edge = (lines[0].strip(),lines[1].strip())
-                if edge not in edges_list:
-                    edges_list.append(edge)
-    return  nodes_list,edges_list
+def graphFromfile(filepath ,filename):
+    G = nx.Graph()
+    #如果第一行为标题
+    i = 0
+    with open(filepath + filename) as fl:
+        for line in fl:
+            if i > 0:
+                lines = str(line).split('\t')
+                G.add_edge(lines[0], lines[1])
+            i = i + 1
+    return G
 
 #计算网络结构中的各种中心性
 def getNodeimpotance(G):
     degree = nx.degree(G)
+    print("degree")
     degree_rs = nx.degree_centrality(G)
+    print("degree_rs")
     pagerank_rs = nx.pagerank(G)
+    print("pagerank_rs")
     eigenvector_rs = nx.eigenvector_centrality(G)
+    print("eigenvector_rs")
     closeness_rs = nx.closeness_centrality(G)
+    print("closeness_rs")
     betweenness_rs = nx.betweenness_centrality(G)
+    print("betweenness_rs")
     return degree,degree_rs,pagerank_rs,eigenvector_rs,closeness_rs,betweenness_rs
 
 def writeNodeinfortofile(filename,r,*param):
     with open(filename, "a") as fw:
+        #写入表头
+        getNodeimp = ['node', 'degree', 'degree_rs', 'pagerank_rs', 'eigenvector_rs', 'closeness_rs', 'betweenness_rs']
+        for nodei in getNodeimp:
+            fw.write(str(nodei))
+            fw.write(",")
+        fw.write("\n")
+
         if (type(r) == nx.classes.graph.Graph):#如果是图
             for i in r.nodes():
                 fw.write(str(i))
@@ -84,21 +93,25 @@ def connected_components_infor(nodes, G):
 if __name__=="__main__":
 
     #建立图结构
-    filepath = "D:/network_ctm/"
-    filename = "type1-network.csv"
-    nodes_list,edges_list = getNodeEdgesfromfile(filepath + filename)
-    G = nx.Graph()
-    G.add_edges_from(edges_list)
+    #filepath = "D:/network_ctm/"
+    #filename = "type1-network.csv"
+    filepath = 'D://libing//net-module(1)//新建文件夹 (2)//'
 
-    #计算节点重要性
-    degree,degree_rs,pagerank_rs,eigenvector_rs,closeness_rs,betweenness_rs  = getNodeimpotance(G)
-    file_wr = "file_wr2.csv"
-    writeNodeinfortofile(filepath + file_wr, G, degree,degree_rs,pagerank_rs,eigenvector_rs,closeness_rs,betweenness_rs)
+    for root, dirs, files in os.walk(filepath, topdown=False):
+        for name in files:
+            filename = os.path.join(root, name)
 
-    nodes = copy.deepcopy(G.nodes())
-    rs = connected_components_infor(nodes, G)
+            G = graphFromfile('' , filename)
+            print("G completed")
+            print(G.edges())
+            #计算节点重要性
+            degree,degree_rs,pagerank_rs,eigenvector_rs,closeness_rs,betweenness_rs  = getNodeimpotance(G)
+            file_wr = str(name) + "file_wr2.csv"
+            writeNodeinfortofile(filepath + file_wr, G, degree,degree_rs,pagerank_rs,eigenvector_rs,closeness_rs,betweenness_rs)
 
-    file_wr = "file_wr3.csv"
-    writeNodeinfortofile(filepath + file_wr, rs)
+            #nodes = copy.deepcopy(G.nodes())
+            #rs = connected_components_infor(nodes, G)
+
+            #writeNodeinfortofile(filepath + file_wr, rs)
 
 

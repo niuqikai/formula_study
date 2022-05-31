@@ -1,8 +1,10 @@
 #根据算法生成组方和组方分数评价
-import formula_study.formula_herb_importance as fhi
-import formula_study.Data_input as di
-import formula_study.herb_pairs_from_formula as hpff
+import formula_herb_importance as fhi
+import Data_input as di
+import Data_output as do
+import herb_pairs_from_formula as hpff
 import random as rd
+import PPI_analyse as ppi
 
 #初始化方剂
 def innit_formula_seed(herb_score_dict, row_num , col_num_list):#herb_score_dict是中药分数字典,row_num为要生成的方剂数目,col_num为方剂中的中药数
@@ -117,44 +119,63 @@ if __name__ == '__main__':
     filepath = 'D:\\ctm_data\\TCMSP-数据\\'
     filename = 'TCMSP_DB_加工.xlsx'
 
-    target_molecule = di.target_mol(filepath, filename, tar='0')#获取疾病对应的靶点和成分，tar=0 表示制定疾病的靶点和成分
+    target_molecule = di.target_mol(filepath, filename, tar='0')#获取疾病对应的靶点和成分，tar=0 表示指定疾病的靶点和成分
     herb_mols =  di.herb_molecules(filepath, filename) #中药对应的成分
-    herb_score = fhi.herb_walk_score_interation(target_molecule,herb_mols)#计算对应的药物分数
-    herb_score = herb_score[['herb_cn_name','walk_score']].drop_duplicates()
+    targets_mol_herb = di.targets_mol_herb(filepath,filename)
 
-    herb_score['walk_score'] = herb_score.apply(lambda x: x['walk_score']/herb_score['walk_score'].sum(),axis=1)#归一化
-    herb_score_dict = {key:values for key, values in zip(herb_score['herb_cn_name'], herb_score['walk_score'])}#转换为字典结构
+    #从PPI网络中获取节点重要性
+    degree,pagerank,eigenvector,closeness,betweenness = ppi.symbol_sore_from_PPI()
+    importance_list = [degree,pagerank,eigenvector,closeness,betweenness]
+    importance_list_name = ['degree','pagerank','eigenvector','closeness','betweenness']
 
-    '''
-    pair_score = 'herb_herb_mol_jaccard_gini'
-    pair_s = di.data_from_excel_sheet(filepath + filename, pair_score)
-    p_s = pair_s[['herb1','herb2','cos_mol']]
-    p_s_dict = {(key1 ,key2):values for key1, key2 ,values in zip(p_s['herb1'], p_s['herb2'], p_s['cos_mol'])}#转换为字典结构
-    '''
+    for importance_ix in range(len(importance_list)):
+        herb_score = fhi.herb_walk_score_interation(targets_mol_herb,importance_list[importance_ix])#计算对应的药物分数
+        herb_score = herb_score[['herb_cn_name','walk_score']].drop_duplicates()
 
-    formula_nums = 1000
-    filepath = 'D:\\ctm_data\\'
-    #filename = '叶天士新.csv'
-    #filename = '第一批100首-药物组成.csv'
-    filename = '中成药数据库.csv'
+        herb_score['walk_score'] = herb_score.apply(lambda x: x['walk_score']/herb_score['walk_score'].sum(),axis=1)#归一化
+        herb_score_dict = {key:values for key, values in zip(herb_score['herb_cn_name'], herb_score['walk_score'])}#转换为字典结构
 
-    rows_list = generate_formula_list(formula_nums)#随机生成方剂中中药数目
-    herb_pair_from_data = hpff.herb_pair_score_from_data(filepath,filename,herb_mols)
-    formula_score_dict = {}
-    formulas = innit_formula_seed(herb_score_dict, formula_nums, rows_list)
-    #test_formula = ['茯苓','人参','桂枝','当归']
-    #print(compute_formula_score(test_formula, herb_score_dict, herb_pair_from_data)*10000)
+        '''
+        pair_score = 'herb_herb_mol_jaccard_gini'
+        pair_s = di.data_from_excel_sheet(filepath + filename, pair_score)
+        p_s = pair_s[['herb1','herb2','cos_mol']]
+        p_s_dict = {(key1 ,key2):values for key1, key2 ,values in zip(p_s['herb1'], p_s['herb2'], p_s['cos_mol'])}#转换为字典结构
+        '''
 
-    for formula_list in formulas:
-        formula_score_dict[compute_formula_score(formula_list, herb_score_dict, herb_pair_from_data)*10000] = formula_list
-    while(len(formula_score_dict.keys())!=formula_nums):
-        f_h_l = innit_formula_seed(herb_score_dict, 1, [rd.randint(1, 15)])
-        f_score = compute_formula_score(f_h_l[0], herb_score_dict, herb_pair_from_data) * 10000
-        formula_score_dict[f_score] = f_h_l[0]
+        formula_nums = 1000
+        filepath = 'D:\\ctm_data\\'
+        #filename = '叶天士新.csv'
+        #filename = '第一批100首-药物组成.csv'
+        filename = '中成药数据库.csv'
 
-    max_score = -99999
-    for k in range(1000):
-        print("第"+str(k)+"迭代")
-        new_score_dict = Genetic_Algorithm(formula_score_dict,herb_score_dict,herb_pair_from_data,formula_nums)
-        formula_score_dict = new_score_dict
+        rows_list = generate_formula_list(formula_nums)#随机生成方剂中中药数目
+        herb_pair_from_data = hpff.herb_pair_score_from_data(filepath,filename,herb_mols)
 
+        #Sab数值替换配伍得分
+        filepath = 'D:/formula_result/1算法设计/2药物配伍得分和SAB等指标的关系/'
+        filename = '2药物配伍得分和SAB等指标的关系.xlsx'
+        herb_pair_from_data = hpff.herb_pair_score_from_Sab(filepath, filename, herb_mols)
+
+
+        formula_score_dict = {}
+        formulas = innit_formula_seed(herb_score_dict, formula_nums, rows_list)
+        #test_formula = ['茯苓','人参','桂枝','当归']
+        #print(compute_formula_score(test_formula, herb_score_dict, herb_pair_from_data)*10000)
+
+        for formula_list in formulas:
+            formula_score_dict[compute_formula_score(formula_list, herb_score_dict, herb_pair_from_data)] = formula_list
+        while(len(formula_score_dict.keys())!=formula_nums):
+            f_h_l = innit_formula_seed(herb_score_dict, 1, [rd.randint(1, 15)])
+            f_score = compute_formula_score(f_h_l[0], herb_score_dict, herb_pair_from_data)
+            formula_score_dict[f_score] = f_h_l[0]
+
+        final_formula_score_dict = {}#最终迭代的1000个方剂极其分数
+        max_score = -99999
+        for k in range(1000):
+            print("第"+str(k)+"迭代")
+            new_score_dict = Genetic_Algorithm(formula_score_dict,herb_score_dict,herb_pair_from_data,formula_nums)
+            formula_score_dict = new_score_dict
+        final_formula_score_dict = formula_score_dict
+        write_file_name = 'formulascore_' + str(importance_list_name[importance_ix]) + '.csv'
+        do.writeformulatodata(write_file_name,final_formula_score_dict)
+        #do.writeformulatodata('formulascore_RA_sab.csv',final_formula_score_dict)

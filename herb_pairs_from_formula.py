@@ -1,8 +1,8 @@
 import pandas as pd
 #import formula_study.formula_herb_importance as fhi
 #根据方剂生成中药对
-import formula_study.Data_input as di
-import formula_study.Data_output as do
+import Data_input as di
+import Data_output as do
 
 
 def herb_pair_score_from_data(filepath, filename,herb_mols):
@@ -29,6 +29,24 @@ def herb_pair_score_from_data(filepath, filename,herb_mols):
                         herb_pair[str(herbs_list[k])+str(herbs_list[j])] += 1
     return herb_pair
 
+
+def herb_pair_score_from_Sab(filepath, filename,herb_mols):
+    herb_pair = {}
+    st_name = 'Sab和pairscore关系'
+    #herbs_list = list(herb_mols['herb_cn_name'].unique())
+    #print(herbs_list)
+    df = pd.read_excel(filepath + filename, sheet_name = st_name)  # 可以通过sheet_name来指定读取的表单
+    herb_pair = {key:values for key, values in zip(df['herb1herb2'], df['sab'])}#转换为字典结构
+    return herb_pair
+
+def herb_pair_score_from_shangshi(filepath, filename,herb_mols):
+    herb_pair = {}
+    st_name = 'Sab和pairscore关系'
+    #herbs_list = list(herb_mols['herb_cn_name'].unique())
+    #print(herbs_list)
+    df = pd.read_excel(filepath + filename, sheet_name = st_name)  # 可以通过sheet_name来指定读取的表单
+    herb_pair = {key:values for key, values in zip(df['herb1herb2'], df['上市中成药'])}#转换为字典结构
+    return herb_pair
 
 #herb_pair = herb_pair_score_from_data(filepath, filename)
 #writedicttodata('herb_pair_from_formula2.csv',herb_pair)

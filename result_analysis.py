@@ -1,9 +1,9 @@
-import formula_study.formula_herb_importance as fhi
-import formula_study.Data_input as di
-import formula_study.Data_output as do
-import formula_study.herb_pairs_from_formula as hpff
+import formula_herb_importance as fhi
+import Data_input as di
+import Data_output as do
+import herb_pairs_from_formula as hpff
 import random as rd
-import formula_study.formula_generate as fg
+import formula_generate as fg
 import pandas as pd
 
 #分析生成的方剂和各种中药分析
@@ -23,6 +23,19 @@ def herb_mols_targs_score(targ_mol_herb,herb_score):#针对特定疾病的中药
 
     mols_tars_score_num = pd.merge(mols_tars_num,herb_score,how = 'left',on= 'herb_cn_name').reset_index()
     mols_tars_score_num.to_csv('heartdisease_mols_tars_score_num.csv')
+
+def gene_herbnum_formula(herb_num, herbs, herb_score_dict, pair_num_dict):#生成固定组方数目的随机方剂
+    formula_num = 1000
+    formula_num_dict = {}
+    for i in range(formula_num):
+        rd.shuffle(herbs)
+        formula_list = herbs[0:herb_num]
+        print(formula_list)
+        score = fg.compute_formula_score(formula_list , herb_score_dict, pair_num_dict)*10000
+        formula_num_dict[score] = formula_list
+    do.writeformulatodata('lc_rand_formula.csv',formula_num_dict)
+    #return formula_num_dict
+
 
 if  __name__ == '__main__':
     filepath = 'D:\\ctm_data\\TCMSP-数据\\'
@@ -49,13 +62,11 @@ if  __name__ == '__main__':
     p_s_dict = {(key1 ,key2):values for key1, key2 ,values in zip(p_s['herb1'], p_s['herb2'], p_s['cos_mol'])}#转换为字典结构
     '''
 
-    formula_nums = 1000
     filepath_herbpair = 'D:\\ctm_data\\'
     #filename = '叶天士新.csv'
     #filename = '第一批100首-药物组成.csv'
     filename_herbpair = '中成药数据库.csv'
 
-    rows_list = fg.generate_formula_list(formula_nums)#随机生成方剂中中药数目
     herb_pair_from_data = hpff.herb_pair_score_from_data(filepath_herbpair,filename_herbpair,herb_mols)
     formula_score_dict = {}
 
@@ -68,8 +79,12 @@ if  __name__ == '__main__':
     #herb_mols_targs_score(targ_mol_herb, herb_score)
 
     #2药物配伍得分和jacard分数等
-    fhi.herb_herb_jaccard_gini(herb_mol_target)
+    #fhi.herb_herb_jaccard_gini(herb_mol_target)
 
+    #随机生成和组方数量相同的方剂
+    herbs = list(targets_mol_herb['herb_cn_name'])
+    herb_num = 7
+    gene_herbnum_formula(herb_num,herbs,herb_score_dict,herb_pair_from_data)
     '''
     for formula_list in formulas:
         formula_score_dict[fg.compute_formula_score(formula_list, herb_score_dict, herb_pair_from_data)*10000] = formula_list
