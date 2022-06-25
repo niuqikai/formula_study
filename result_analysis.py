@@ -5,7 +5,7 @@ import herb_pairs_from_formula as hpff
 import random as rd
 import formula_generate as fg
 import pandas as pd
-
+import PPI_analyse as ppi
 #分析生成的方剂和各种中药分析
 def Sab_pairscore_compare(writefilename,herb_pair_from_data,herbs_Sab):#比较药对得分和Sab分数
     return 0
@@ -24,18 +24,26 @@ def herb_mols_targs_score(targ_mol_herb,herb_score):#针对特定疾病的中药
     mols_tars_score_num = pd.merge(mols_tars_num,herb_score,how = 'left',on= 'herb_cn_name').reset_index()
     mols_tars_score_num.to_csv('heartdisease_mols_tars_score_num.csv')
 
-def gene_herbnum_formula(herb_num, herbs, herb_score_dict, pair_num_dict):#生成固定组方数目的随机方剂
+def gene_herbnum_formula(herbs, herb_score_dict, pair_num_dict):#生成固定组方数目的随机方剂
     formula_num = 1000
     formula_num_dict = {}
     for i in range(formula_num):
+        num = rd.randint(2, 15)  # 从2味药到14味药
         rd.shuffle(herbs)
-        formula_list = herbs[0:herb_num]
+        formula_list = herbs[0:num]
         print(formula_list)
         score = fg.compute_formula_score(formula_list , herb_score_dict, pair_num_dict)*10000
         formula_num_dict[score] = formula_list
     do.writeformulatodata('lc_rand_formula.csv',formula_num_dict)
     #return formula_num_dict
 
+def formula_num_herbs_num():
+    filepath = 'D:\\formula_result\\1算法设计\\5方剂分析\\'
+    filename = 'atherosclerosis.csv'
+    with open(filepath + filename) as f:
+        for l in f:
+            herbs = l.strip().split(',')
+            print(herbs)
 
 if  __name__ == '__main__':
     filepath = 'D:\\ctm_data\\TCMSP-数据\\'
@@ -44,8 +52,9 @@ if  __name__ == '__main__':
     target_molecule = di.target_mol(filepath, filename, tar='0')#获取疾病对应的靶点和成分，tar=0 表示制定疾病的靶点和成分
     herb_mols =  di.herb_molecules(filepath, filename) #中药对应的成分
     targets_mol_herb = di.targets_mol_herb(filepath,filename)#中药靶点成分 inner
+    degree,pagerank,eigenvector,closeness,betweenness = ppi.symbol_sore_from_PPI()
 
-    herb_score = fhi.herb_walk_score_interation(targets_mol_herb)#计算对应的药物分数
+    herb_score = fhi.herb_walk_score_interation(targets_mol_herb,pagerank)#计算对应的药物分数
     herb_score = herb_score[['herb_cn_name','walk_score']].drop_duplicates()
 
     targ_mol_herb = di.targets_mol_herb(filepath,filename)#疾病靶点对应的成分和中药
@@ -82,9 +91,12 @@ if  __name__ == '__main__':
     #fhi.herb_herb_jaccard_gini(herb_mol_target)
 
     #随机生成和组方数量相同的方剂
-    herbs = list(targets_mol_herb['herb_cn_name'])
-    herb_num = 7
-    gene_herbnum_formula(herb_num,herbs,herb_score_dict,herb_pair_from_data)
+    #herbs = list(targets_mol_herb['herb_cn_name'])
+    #gene_herbnum_formula(herbs,herb_score_dict,herb_pair_from_data)
+
+    #
+    formula_num_herbs_num()
+
     '''
     for formula_list in formulas:
         formula_score_dict[fg.compute_formula_score(formula_list, herb_score_dict, herb_pair_from_data)*10000] = formula_list

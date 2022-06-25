@@ -148,21 +148,52 @@ def targ_mol_herb_num(targ_mol_herb):#计算每种药物对应的靶点成分数
     return targ_mol,targ_herb
 
 
-def Sab(G , nodes):
+def Saa(G , nodes, path_length):
     distance_total = 0.0
     reduce_num = 0
     for source in nodes:
         source_list = []
         for target in nodes:
-            if (source != target) and (source in G.nodes()) and (target in G.nodes()) and (G.has_edge(source ,target)):
-                source_list.append(nx.shortest_path_length(G ,source ,target))
+            if (source != target) and (source in G.nodes()) and (target in G.nodes()) and (source in path_length):
+                if target in path_length[source]:
+                    source_list.append(path_length[source][target])
         if len(source_list) != 0:
             s_distance = np.min(source_list)
             distance_total = distance_total + s_distance
-        else :
-            red_num = reduce_num -1
-    if len(nodes) - reduce_num != 0:
-        rs = distance_total/(len(nodes) - reduce_num)
+            reduce_num = reduce_num + 1
+    if reduce_num != 0:
+        rs = float(distance_total)/reduce_num
+        return rs
+
+
+
+def Sab(G , nodesA, nodesB, path_length):
+    distance_total = 0.0
+    reduce_num = 0
+    for source in nodesA:
+        source_list = []
+        for target in nodesB:
+            if (source in G.nodes()) and (target in G.nodes() and (source in path_length)):
+                if target in path_length[source]:
+                    source_list.append(path_length[source][target])
+        if len(source_list) != 0:
+            s_distance = np.min(source_list)
+            distance_total = distance_total + s_distance
+            reduce_num = reduce_num +1
+
+    for source in nodesB:
+        source_list = []
+        for target in nodesA:
+            if (source in G.nodes()) and (target in G.nodes() and (source in path_length)):
+                if target in path_length[source]:
+                    source_list.append(path_length[source][target])
+        if len(source_list) != 0:
+            s_distance = np.min(source_list)
+            distance_total = distance_total + s_distance
+            reduce_num = reduce_num +1
+
+    if reduce_num != 0:
+        rs = float(distance_total)/reduce_num
         return rs
 
 
@@ -171,6 +202,8 @@ def shortest_distance(herb_mol_target):#计算两味中药之前的平均最短�
     herbs = list(herb_mol_target['herb_cn_name'].unique())
     herbs_pair_sab = {}
     G = di.Graph_from_data()
+    path_length = dict(nx.all_pairs_shortest_path_length(G))
+
     for i in range(len(herbs)-1):
         for j in range(i+1 , len(herbs) ):
             #print(herbs[i],herbs[j])
@@ -179,20 +212,22 @@ def shortest_distance(herb_mol_target):#计算两味中药之前的平均最短�
             herb2_targets = herb_mol_target[herb_mol_target['herb_cn_name'] == herbs[j]]['TARGET_ID']
             herb1_targets_list = list(set(herb1_targets.dropna()))
             herb2_targets_list = list(set(herb2_targets.dropna()))
-            Sa = Sab(G , herb1_targets_list)
-            Sb = Sab(G , herb2_targets_list)
+            Sa = Saa(G , herb1_targets_list)
+            Sb = Saa(G , herb2_targets_list)
+            '''
             herb1_herb2_targets_list = []
             herb1_herb2_targets_list.extend(herb1_targets_list)
             herb1_herb2_targets_list.extend(herb2_targets_list)
             herb1_herb2_targets_list = list(set(herb1_herb2_targets_list))
-            S_ab = Sab(G , herb1_herb2_targets_list)
+            '''
+            S_ab = Sab(G , herb1_targets_list, herb2_targets_list)
 
             for targ1 in herb1_targets_list:
                 for targ2 in herb2_targets_list:
-                    if targ1 in G.nodes() and targ2 in G.nodes() and G.has_edge(targ1, targ2): #同一种疾病下的成为
-                        distance_list.append(nx.shortest_path_length(G, targ1, targ2))
+                    if targ1 in G.nodes() and targ2 in G.nodes() and targ1 in path_length: #同一种疾病下的成为
+                        if targ2 in path_length[targ1]:
+                            distance_list.append(path_length[targ1][targ2])
             if len(distance_list) !=0:
-                '''
                 with open(filewrite, 'a') as fw:
                     fw.write(str(herbs[i]))
                     fw.write(",")
@@ -205,7 +240,6 @@ def shortest_distance(herb_mol_target):#计算两味中药之前的平均最短�
                     fw.write(str(S_ab - (Sa + Sb)/2.0))
                     fw.write('\n')
                     fw.flush()
-                '''
                 herbs_pair_sab[str(herbs[i])+str(herbs[j])] = S_ab - (Sa + Sb)/2.0
     return herbs_pair_sab
 
@@ -215,6 +249,8 @@ def SabFromPPI(herb_mol_target):#计算PPI网络中的Sab,最短连接距离等
     herbs = list(herb_mol_target['herb_cn_name'].unique())
     herbs_pair_sab = {}
     G = di.graphFromPPI()#PPI网络
+    path_length = dict(nx.all_pairs_shortest_path_length(G))
+
     Sab_dict = {}
     gene_symbol_entrezid = di.gene_symbol_entrezid_pd()
 
@@ -232,32 +268,42 @@ def SabFromPPI(herb_mol_target):#计算PPI网络中的Sab,最短连接距离等
             if herbs[i] in Sab_dict:
                 Sa = Sab_dict[herbs[i]]
             else:
-                Sa = Sab(G, herb1_targets_list)
+                Sa = Saa(G, herb1_targets_list,path_length)
+                Sab_dict[herbs[i]] = Sa
 
             if herbs[j] in Sab_dict:
                 Sb = Sab_dict[herbs[j]]
             else:
-                Sb = Sab(G, herb2_targets_list)
+                Sb = Saa(G, herb2_targets_list,path_length)
+                Sab_dict[herbs[j]] = Sb
+
+            '''
             herb1_herb2_targets_list = []
             herb1_herb2_targets_list.extend(herb1_targets_list)
             herb1_herb2_targets_list.extend(herb2_targets_list)
             herb1_herb2_targets_list = list(set(herb1_herb2_targets_list))
-            S_ab = Sab(G, herb1_herb2_targets_list)
+            '''
+            S_ab = Sab(G, herb1_targets_list, herb2_targets_list, path_length)
 
             distance_list = []
             for targ1 in herb1_targets_list:
                 for targ2 in herb2_targets_list:
-                    if targ1 in G.nodes() and targ2 in G.nodes() and G.has_edge(targ1, targ2):  #
-                        distance_list.append(nx.shortest_path_length(G, targ1, targ2))
+                    if targ1 in G.nodes() and targ2 in G.nodes() and targ1 in path_length:#
+                        if targ2 in path_length[targ1]:
+                            distance_list.append(path_length[targ1][targ2])
             if len(distance_list) != 0:
                 with open(filewrite, 'a') as fw:
                     fw.write(str(herbs[i]))
                     fw.write(",")
                     fw.write(str(herbs[j]))
                     fw.write(",")
-                    fw.write(str(np.min(distance_list)))
+                    fw.write(str(herb1_targets_list))
                     fw.write(",")
-                    fw.write(str(np.mean(distance_list)))
+                    fw.write(str(herb2_targets_list))
+                    fw.write(",")
+                    fw.write(str(Sa))
+                    fw.write(",")
+                    fw.write(str(Sb))
                     fw.write(",")
                     fw.write(str(S_ab - (Sa + Sb)/2.0))
                     fw.write('\n')
@@ -342,10 +388,12 @@ def walk_score_algorithm(df_data ,source, target):#计算二分网络随机游�
 
 def herb_walk_score_interation(targets_mol_herb,importance_score):#计算随机游走的数据，对每个中药进行打分。迭代n次
     t_m = targets_mol_herb[['TARGET_ID','MOL_ID']].drop_duplicates()# 提取靶点和成分列，第一列为起点列
-    t_m['walk_score'] = t_m['TARGET_ID'].apply(lambda x: 1.0)  # 初始化分数,如果不考虑PPI网络，默认为1
+    #t_m['walk_score'] = t_m['TARGET_ID'].apply(lambda x: 1.0)  # 初始化分数,如果不考虑PPI网络，默认为1
+
     #print(t_m['TARGET_ID'].nunique())
     #初始化分数,考虑PPI网络中的权重
-    #t_m['walk_score'] = t_m['TARGET_ID'].apply(lambda x: importance_score[x]*1 if x in importance_score else 0)
+    t_m['walk_score'] = t_m['TARGET_ID'].apply(lambda x: importance_score[x]*1 if x in importance_score else 0)
+    #初始化分数,考虑PPI网络中的权重
 
     source = 'TARGET_ID'
     target = 'MOL_ID'

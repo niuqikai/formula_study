@@ -1,6 +1,5 @@
 import pandas as pd
 import os
-
 filepath = 'D:/刘思鸿/1995卫生部标准/'
 
 file_rs = 'cintmed_rs.txt'
@@ -86,3 +85,5 @@ for root, dirs, files in os.walk(filepath):
     for f in files:
         filename = os.path.join(root, f)
         writefiletodata(filename,0)
+
+

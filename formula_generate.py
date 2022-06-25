@@ -94,26 +94,69 @@ def Genetic_Algorithm(formulas_score_dict,herb_score_dict,herb_pair_from_data,fo
         rd.shuffle(formulak)
         #组成新的方子,交叉变异
         formula1 = formulak[0:int(len(formulak)/2)]
-        formula1 = variation(formula1,0.05,herb_score_dict)#变异，变异系数0.05
+        formula1 = variation(formula1,0.1,herb_score_dict)#变异，变异系数0.1
         formula1 = sorted(formula1)#相同的方剂序列一致
         formula1_list = (compute_formula_score(formula1, herb_score_dict, herb_pair_from_data)* 10000,formula1)
 
         formula2 = formulak[int(len(formulak)/2):len(formulak)]
-        formula2 = variation(formula2,0.05,herb_score_dict)#变异，变异系数0.05
+        formula2 = variation(formula2,0.1,herb_score_dict)#变异，变异系数0.1
         formula2 = sorted(formula2)
         formula2_list = (compute_formula_score(formula2, herb_score_dict, herb_pair_from_data) *10000,formula2)
         if is_same_herb_in_formula(formula1):
             new_formulas_score_list2.append(formula1_list)
         if is_same_herb_in_formula(formula2):
             new_formulas_score_list2.append(formula2_list)
-    new_formulas_score_list1.extend(new_formulas_score_list2)
-    new_formulas_score_dict = {key:value for (key,value) in new_formulas_score_list1}
+
+    #最大数值方剂给予一定概率变异
+    variation_new_formulas_score_list1 = []
+    for (score,fm) in new_formulas_score_list1:
+        formula1 = variation(fm, 0.01, herb_score_dict)  # 变异，变异系数0.01
+        formula1 = sorted(formula1)  # 相同的方剂序列一致
+        formula1_list = (compute_formula_score(formula1, herb_score_dict, herb_pair_from_data) * 10000, formula1)
+        if is_same_herb_in_formula(formula1):
+            variation_new_formulas_score_list1.append(formula1_list)
+
+    variation_new_formulas_score_list1.extend(new_formulas_score_list2)
+    new_formulas_score_dict = {key:value for (key,value) in variation_new_formulas_score_list1}
     while (len(new_formulas_score_dict.keys()) != formula_nums):#有时候会有相同的方剂，使得总体数量减少，重新生成，补齐
         f_h_l = innit_formula_seed(herb_score_dict, 1, [rd.randint(1,15)])
         f_score = compute_formula_score(f_h_l[0], herb_score_dict, herb_pair_from_data) * 10000
         new_formulas_score_dict[f_score] = f_h_l[0]
     return  new_formulas_score_dict
 
+#抽取从生成方剂的中number数量的方剂,用于排序和比较,number默认1000
+def formula_sorted_num(formula_all_dict,number=1000):
+    formula_all_list = sorted(formula_all_dict.items(), key=lambda x: x[0], reverse=True)  # 排序
+    formula_num_sample = []
+    (max_fmapscore,max_formula) = formula_all_list[0]
+    (min_fmapscore,min_formula) = formula_all_list[len(formula_all_list) -1]
+
+    #将分数统一为0到100
+    #1保留最大的前50个数值
+    for i in range(50):
+        (fmapscore,formula) = formula_all_list[i]
+        std_fmapscore = (fmapscore - min_fmapscore)/(max_fmapscore-min_fmapscore)*100
+        formula_num_sample.append((fmapscore,formula))
+    formula_all_list = formula_all_list[50:]
+    bin_pri = [80,60,40,20,0]
+    ix = 0
+    tmp_bin_formula_list = []
+    for bin in formula_all_list:
+        (fmapscore,formula) = bin
+        std_fmapscore = (fmapscore - min_fmapscore)/(max_fmapscore-min_fmapscore)*100
+        if std_fmapscore > bin_pri[ix] - 0.1:
+            tmp_bin_formula_list.append((fmapscore,formula))
+        else:
+            rs = rd.sample(tmp_bin_formula_list,int((number-50) / 5))
+            formula_num_sample.extend(rs)
+            ix = ix + 1
+            tmp_bin_formula_list = []
+    rs = rd.sample(tmp_bin_formula_list, int((number - 50) / 5))
+    formula_num_sample.extend(rs)
+    formula_num_sample_dict = {}
+    for (k,v) in formula_num_sample:
+        formula_num_sample_dict[k] = v
+    return formula_num_sample_dict
 
 if __name__ == '__main__':
     filepath = 'D:\\ctm_data\\TCMSP-数据\\'
@@ -125,8 +168,11 @@ if __name__ == '__main__':
 
     #从PPI网络中获取节点重要性
     degree,pagerank,eigenvector,closeness,betweenness = ppi.symbol_sore_from_PPI()
-    importance_list = [degree,pagerank,eigenvector,closeness,betweenness]
-    importance_list_name = ['degree','pagerank','eigenvector','closeness','betweenness']
+    #importance_list = [degree,pagerank,eigenvector,closeness,betweenness]
+    importance_list = [pagerank]
+
+    #importance_list_name = ['degree','pagerank','eigenvector','closeness','betweenness']
+    importance_list_name = ['pagerank']
 
     for importance_ix in range(len(importance_list)):
         herb_score = fhi.herb_walk_score_interation(targets_mol_herb,importance_list[importance_ix])#计算对应的药物分数
@@ -152,9 +198,10 @@ if __name__ == '__main__':
         herb_pair_from_data = hpff.herb_pair_score_from_data(filepath,filename,herb_mols)
 
         #Sab数值替换配伍得分
-        filepath = 'D:/formula_result/1算法设计/2药物配伍得分和SAB等指标的关系/'
-        filename = '2药物配伍得分和SAB等指标的关系.xlsx'
-        herb_pair_from_data = hpff.herb_pair_score_from_Sab(filepath, filename, herb_mols)
+        #filepath = 'D:/formula_result/1算法设计/2药物配伍得分和SAB等指标的关系/'
+        #filename = '2药物配伍得分和SAB等指标的关系.xlsx'
+        #herb_pair_from_data = hpff.herb_pair_score_from_Sab(filepath, filename, herb_mols)
+        #Sab数值替换配伍得分
 
 
         formula_score_dict = {}
@@ -169,13 +216,21 @@ if __name__ == '__main__':
             f_score = compute_formula_score(f_h_l[0], herb_score_dict, herb_pair_from_data)
             formula_score_dict[f_score] = f_h_l[0]
 
-        final_formula_score_dict = {}#最终迭代的1000个方剂极其分数
+        #所有生成过的方剂合并，为抽取1000个均匀分布的方剂准备
+        all_final_formula_score_dict = {}
+
+        #final_formula_score_dict = {}#最终迭代的1000个方剂极其分数
         max_score = -99999
-        for k in range(1000):
+        for k in range(3000):
             print("第"+str(k)+"迭代")
             new_score_dict = Genetic_Algorithm(formula_score_dict,herb_score_dict,herb_pair_from_data,formula_nums)
             formula_score_dict = new_score_dict
-        final_formula_score_dict = formula_score_dict
+            for (key,value) in formula_score_dict.items():
+                if key not in all_final_formula_score_dict:
+                    all_final_formula_score_dict[key] = formula_score_dict[key]
+
+        final_formula_score_dict = formula_sorted_num(all_final_formula_score_dict)
+        #final_formula_score_dict = formula_score_dict
         write_file_name = 'formulascore_' + str(importance_list_name[importance_ix]) + '.csv'
         do.writeformulatodata(write_file_name,final_formula_score_dict)
         #do.writeformulatodata('formulascore_RA_sab.csv',final_formula_score_dict)

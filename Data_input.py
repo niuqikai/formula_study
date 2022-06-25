@@ -8,8 +8,8 @@ import copy as cp
 filepath = 'D:\\ctm_data\\TCMSP-数据\\'
 filename = 'TCMSP_DB_加工.xlsx'
 disease_t = 'v_Targets_Diseases'
-disease_file = 'D:\\network_ctm\\formula_study\\diseasename\\diseasename_HeartFailure.csv'
-neighbor_num = 1
+disease_file = 'diseasename/diseasename_Atherosclerosis.csv'
+neighbor_num = 2
 
 def datafromcsv(fileapath):
     df = pd.DataFrame(fileapath)

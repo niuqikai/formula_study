@@ -17,14 +17,14 @@ def writestandardformula(filename,herb_mols):
                     herbs_list_new.append(str(standedherb(i,herbs_list)))
             writeformulatodata('叶天士新.csv',herbs_list_new)
 
-
+'''
 def writeformulatodata(filename , datalist):#将重新写新的方剂
     with open(filename,'a') as fl:
         for dl in range(len(datalist)):
             fl.write(str(datalist[dl]))
             fl.write(',')
         fl.write('\n')
-
+'''
 def writelisttodata(filename , datalist):#将列表数据写入文本
     with open(filename,'a') as fl:
         for dl in range(len(datalist)):
