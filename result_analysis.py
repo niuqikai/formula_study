@@ -37,15 +37,105 @@ def gene_herbnum_formula(herbs, herb_score_dict, pair_num_dict):#生成固定组
     do.writeformulatodata('lc_rand_formula.csv',formula_num_dict)
     #return formula_num_dict
 
-def formula_num_herbs_num():
+def ChinesesNameToEnglish():
+    filepath = 'D:\\ctm_data\\'
+    filename = 'chinese_english_herb.csv'
+    pd_chinese_english = pd.read_csv(filepath + filename,sep = '\t')
+    chinese_english_herb_dict = {key:values for key, values in zip(pd_chinese_english['herb_cn_name'], pd_chinese_english['herb_en_name'])}
+    return chinese_english_herb_dict
+
+
+def formula_num_herbs_num(chinese_english_herb_dict):#计算Top50的方剂中药物分布，药对分布，方剂数量分布
     filepath = 'D:\\formula_result\\1算法设计\\5方剂分析\\'
     filename = 'atherosclerosis.csv'
+
+    herbs_dict = {} #方剂中中药数量分布
+    formula_num_dict = {}#方剂数量分布
+    pair_num_dict = {}
+
     with open(filepath + filename) as f:
         for l in f:
+            formula_num = 0
             herbs = l.strip().split(',')
-            print(herbs)
+            for herb in herbs:
+                if herb!='' :
+                    formula_num += 1
+                    if herb in herbs_dict:
+                        herbs_dict[herb] = herbs_dict[herb] + 1
+                    if herb not in herbs_dict:
+                        herbs_dict[herb] = 1
+
+                for herbj in herbs:
+                    if herb!=herbj and herb!='' and herbj!='':
+                        if (herb,herbj) in pair_num_dict:
+                            pair_num_dict[herb,herbj] = pair_num_dict[herb,herbj] + 1
+                        else:
+                            pair_num_dict[herb,herbj] =  1
+
+
+            if formula_num in formula_num_dict:
+                formula_num_dict[formula_num] = formula_num_dict[formula_num] + 1
+            else:
+                formula_num_dict[formula_num] = 1
+    herbs_dict = sorted(herbs_dict.items(),key= lambda x:x[1], reverse=True)
+    print(herbs_dict)
+    for (k,v) in herbs_dict:
+        print(str(chinese_english_herb_dict[k]).strip(),',',v)
+    for (k,v) in formula_num_dict.items():
+        print(k,v)
+
+    Herbs = ['Herb1','Herb2','Herb3','Herb4','Herb5','Herb6','Herb7','Herb8','Herb9','Herb10']
+    for k in range(10):
+            (herbk,v) = herbs_dict[k]
+            for j in range(10):
+                (herbj,t) = herbs_dict[j]
+                if k!=j :
+                    p = (str(herbk),str(herbj))
+                    if p in pair_num_dict:
+                        print(Herbs[k],'\t',Herbs[j],'\t',pair_num_dict[p])
+                    else:
+                        print(Herbs[k],'\t',Herbs[j],'\t',0)
+                else:
+                    print(Herbs[k],'\t',Herbs[j],'\t',0)
+
+
+    '''
+    print('Herb',end='\t')
+    for (k,v) in herbs_dict[:10]:
+        print(chinese_english_herb_dict[k],end='\t')
+    print()
+    for (k,v) in herbs_dict[:10]:
+        print(chinese_english_herb_dict[k],end='\t')
+        for (j,t) in herbs_dict[:10]:
+            if k != j:
+                p = (str(k), str(j))
+                if p in pair_num_dict:
+                    print(pair_num_dict[p],end='\t')
+                else:
+                    print(0,end='\t')
+            else:
+                print(0,end='\t')
+        print()
+    '''
+
+def formula_tareget(herb_mol_target,herbs):#返回方剂中对应的靶点,以
+    targets = herb_mol_target[herb_mol_target['herb_cn_name'].isin(herbs)]
+    herb_targets = targets['TARGET_ID']
+    pd_gene_symbol = di.targetid_SYMBOL_pd()
+    pd_gene_symbol = pd_gene_symbol[pd_gene_symbol['target'].isin(herb_targets)]
+    return list(pd_gene_symbol['symbol'])
+
+
+def diseaseIDinPPI(filepath,filename):
+    disease_tar = di.disease_target(filepath,filename)
+    gene_symbol_entrezid = di.gene_symbol_entrezid_pd()
+    target_entrezid = gene_symbol_entrezid['entrezid']
+    return target_entrezid
 
 if  __name__ == '__main__':
+    chinese_english_herb_dict = ChinesesNameToEnglish()
+    formula_num_herbs_num(chinese_english_herb_dict)
+
     filepath = 'D:\\ctm_data\\TCMSP-数据\\'
     filename = 'TCMSP_DB_加工.xlsx'
 
@@ -94,8 +184,16 @@ if  __name__ == '__main__':
     #herbs = list(targets_mol_herb['herb_cn_name'])
     #gene_herbnum_formula(herbs,herb_score_dict,herb_pair_from_data)
 
-    #
-    formula_num_herbs_num()
+    #输入方剂，返回对应的靶点
+    #herbs = ['丹参','党参','山茱萸','枸杞子','甘草']
+    #herbs = ['丹参','川芎','延胡索','当归','没药','甘草','黄芩']
+    herbs = ['丹参','川芎','延胡索','杜仲','甘草','白术','苦杏仁','葛根','麻黄']
+    rs_formula_target = formula_tareget(herb_mol_target, herbs) # 返回方剂中对应的靶点,以
+    for rs in rs_formula_target:
+        print(rs)
+
+    #print(diseaseIDinPPI(filepath,filename))
+
 
     '''
     for formula_list in formulas:

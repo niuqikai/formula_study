@@ -9,13 +9,14 @@ import herb_pairs_from_formula as hpff
 import Data_output as do
 import PPI_analyse as ppi
 import numpy as np
+import networkx as nx
 
 #计算方剂针对特定疾病(靶点)的横向和纵向扰动分数。
-def perturbation_formula(herbs_list,disease_target_list,herbs_data):
+def perturbation_formula(herbs_list,disease_target_symbol_list,herbs_data):
     herbs_score_dict = {}
 
     herbs_data = herbs_data[herbs_data['Herb_Chinese_Name'].isin(herbs_list)]
-    herbs_data = herbs_data[disease_target_list]
+    herbs_data = herbs_data[disease_target_symbol_list]
 
     #按行求和，添加为新列
     herbs_data['row_sum'] = herbs_data.apply(lambda x:x.sum(),axis=1)
@@ -83,12 +84,57 @@ def formula_entropy(herbs_list,herb_pair_from_data_shangshi,bins):#计算方剂�
             entr_cut = 0
         else:
             p = float(cut_num[k2]) / total_num
-            entr_cut = -p * np.log(p)
+            entr_cut = -p * np.log10(p)
         total_num_entr += entr_cut
     return total_num_entr
 
 
-def formula_analysis_rs(filedir,nodes_symbolid):
+
+def target_num_disease(herbs_list,tar_nodes_list,h_m_t):
+    h_m_t = h_m_t[h_m_t['herb_cn_name'].isin(herbs_list)]
+    herb_target = set(h_m_t['TARGET_ID'])
+    tar_nodes_list = set(tar_nodes_list)
+
+    inter = len(herb_target.intersection(tar_nodes_list))
+    return inter,inter/len(herbs_list),inter/len(herb_target)
+
+
+def closet_Drug_Target(herbs_list,disease_target_entrezid_list,h_m_t,path_length,gene_symbol_entrezid):
+
+    h_m_t = h_m_t[h_m_t['herb_cn_name'].isin(herbs_list)]
+    herb_target = list(h_m_t['TARGET_ID'])
+
+    nodes_pd_target = gene_symbol_entrezid[gene_symbol_entrezid['target'].isin(herb_target)]
+    nodes_symbolid = list(set(nodes_pd_target['entrezid']))
+
+    #print(disease_target_entrezid_list)
+    #print(nodes_symbolid)
+    sum_path = 0
+    num = 0
+    for t in disease_target_entrezid_list:
+        length_t = []
+        for m in nodes_symbolid:
+            if str(t) in path_length:
+                if str(m) in path_length[str(t)]:
+                    length_t.append(path_length[str(t)][str(m)])
+        if len(length_t)!= 0:
+            sum_path = sum_path + min(length_t)
+            num = num + 1
+
+    for m in nodes_symbolid:
+        length_t = []
+        for t in disease_target_entrezid_list:
+            if str(m) in path_length:
+                if str(t) in path_length[str(m)]:
+                    length_t.append(path_length[str(m)][str(t)])
+        if len(length_t)!= 0:
+            sum_path = sum_path + min(length_t)
+            num = num + 1
+    return float(sum_path)/num
+
+
+
+def formula_analysis_rs(filedir,nodes_pd_target,tar_nodes_list,h_m_t):
     filepath_ppiscore = 'D:/ctm_data/'
     filename_ppiscore = 'herb_PPI_score.csv'
     herbs_data = pd.read_csv(filepath_ppiscore + filename_ppiscore, encoding='ansi')
@@ -104,6 +150,10 @@ def formula_analysis_rs(filedir,nodes_symbolid):
     herb_pair_from_data_cut = pd.cut(herb_pair_from_data_value,5)
     bins = herb_pair_from_data_cut.unique()
 
+    G = di.graphFromPPI()
+    path_length = dict(nx.all_pairs_shortest_path_length(G))
+    gene_symbol_entrezid = di.gene_symbol_entrezid_pd()
+
 
     for root, dirs, files in os.walk(filedir, topdown=False):
         for name in files:
@@ -114,17 +164,26 @@ def formula_analysis_rs(filedir,nodes_symbolid):
                     herbs = line.strip().split(',')
                     fmapsocre = herbs[0]
                     herbs = herbs[1:-1]
-                    disease_target_list = list(nodes_symbolid)
 
-                    sum_row,sum_col = perturbation_formula(herbs, disease_target_list,herbs_data)
+                    disease_target_symbol_list = list(set(nodes_pd_target['symbol']))
+                    disease_target_entrezid_list = list(set(nodes_pd_target['entrezid']))
+
+                    inter,inter_herbs,inter_target = target_num_disease(herbs, tar_nodes_list, h_m_t)
+
+                    sum_row,sum_col = perturbation_formula(herbs, disease_target_symbol_list,herbs_data)
                     entr = formula_entropy(herbs,herb_pair_from_data_shangshi,bins)
                     fm_sab = fomula_sab(herbs,herb_pair_from_data)
+                    closest_herbs = closet_Drug_Target(herbs,disease_target_entrezid_list,h_m_t,path_length,gene_symbol_entrezid)
 
                     herbs.insert(0,str(fmapsocre))
-                    herbs.insert(0,str(sum_row))
+                    #herbs.insert(0,str(sum_row))
                     herbs.insert(0,str(sum_col))
                     herbs.insert(0,str(entr))
                     herbs.insert(0,str(fm_sab))
+                    herbs.insert(0,str(closest_herbs))
+                    herbs.insert(0,str(inter))
+                    herbs.insert(0,str(inter_herbs))
+                    herbs.insert(0,str(inter_target))
 
                     filers = name + '_rs.csv'
                     do.writedatalisttodata(os.path.join(root, filers),herbs)
@@ -141,12 +200,12 @@ if  __name__ == '__main__':
     nodes_list = list(disease_target)
     gene_symbol_entrezid = di.gene_symbol_entrezid_pd()
     nodes_pd_target = gene_symbol_entrezid[gene_symbol_entrezid['target'].isin(list(nodes_list))]
-    nodes_symbolid = nodes_pd_target['symbol']
-    print(nodes_symbolid)
+    #nodes_symbolid = nodes_pd_target['symbol']
+    #print(nodes_symbolid)
 
+    h_m_t = di.herb_mol_targets(filepath,filename)
 
-
-    filedir = 'D:\\formula_result\\2结果展示'
+    filedir = 'D:\\formula_result\\3方剂分析'
     #formula_analysis_rs(filedir, nodes_symbolid)
 
-    formula_analysis_rs(filedir, nodes_symbolid)
+    formula_analysis_rs(filedir, nodes_pd_target, nodes_list, h_m_t)

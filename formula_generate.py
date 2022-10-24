@@ -5,6 +5,7 @@ import Data_output as do
 import herb_pairs_from_formula as hpff
 import random as rd
 import PPI_analyse as ppi
+import pandas as pd
 
 #初始化方剂
 def innit_formula_seed(herb_score_dict, row_num , col_num_list):#herb_score_dict是中药分数字典,row_num为要生成的方剂数目,col_num为方剂中的中药数
@@ -147,11 +148,12 @@ def formula_sorted_num(formula_all_dict,number=1000):
         if std_fmapscore > bin_pri[ix] - 0.1:
             tmp_bin_formula_list.append((fmapscore,formula))
         else:
-            rs = rd.sample(tmp_bin_formula_list,int((number-50) / 5))
+            print(len(tmp_bin_formula_list))
+            rs = rd.sample(tmp_bin_formula_list,int((number-50) / 500))
             formula_num_sample.extend(rs)
             ix = ix + 1
             tmp_bin_formula_list = []
-    rs = rd.sample(tmp_bin_formula_list, int((number - 50) / 5))
+    rs = rd.sample(tmp_bin_formula_list, int((number - 50) / 500))
     formula_num_sample.extend(rs)
     formula_num_sample_dict = {}
     for (k,v) in formula_num_sample:
@@ -192,7 +194,10 @@ if __name__ == '__main__':
         filepath = 'D:\\ctm_data\\'
         #filename = '叶天士新.csv'
         #filename = '第一批100首-药物组成.csv'
-        filename = '中成药数据库.csv'
+        #filename = '中成药数据库.csv'
+        filename = '伤寒金匮.csv'
+        #filename = '瘟疫温病条辨.csv'
+        #filename = '各地新冠方剂.csv'
 
         rows_list = generate_formula_list(formula_nums)#随机生成方剂中中药数目
         herb_pair_from_data = hpff.herb_pair_score_from_data(filepath,filename,herb_mols)
@@ -221,7 +226,7 @@ if __name__ == '__main__':
 
         #final_formula_score_dict = {}#最终迭代的1000个方剂极其分数
         max_score = -99999
-        for k in range(3000):
+        for k in range(1000):
             print("第"+str(k)+"迭代")
             new_score_dict = Genetic_Algorithm(formula_score_dict,herb_score_dict,herb_pair_from_data,formula_nums)
             formula_score_dict = new_score_dict

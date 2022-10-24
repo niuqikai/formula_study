@@ -8,16 +8,18 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 import random as rd
-
+import os
+#计算PPI网络中的sab值和dab值
 def graphFromPPI():
-    filepath_PPI = 'D:/ctm_data/PPI蛋白网络数据/'
-    filename_PPI = 'PPI_edges.txt'
+    filepath_PPI = 'C:\\Users\\Administrator\\Desktop\\'
+    filename_PPI = 'PPI1.txt'
     G = nx.Graph()
     with open(filepath_PPI + filename_PPI) as fl:
         for line in fl:
-            lines = str(line).split('\t')
+            lines = str(line).strip().split('\t')
             G.add_edge(lines[0], lines[1])
-    return G
+    H = nx.subgraph(G, max(nx.connected_components(G), key=len))
+    return H
 
 
 def Saa(G, nodes, path_length):
@@ -129,6 +131,52 @@ def zdct(herb1_targets_list,targets,path_length):
         rs_list.append(Sab(G, tars1_list, tars2_list, path_length))
     return np.mean(rs_list),np.var(rs_list)
 
+#找出到geneA和geneB的最短距离基因排序
+def shortest_nodes(G, genesA, genesB, path_length):
+    nodes_shortest = {}
+    for node in G.nodes():
+        lengh = 0
+        for nodei in genesA:
+            if node in path_length and nodei in path_length[node]:
+                lengh = lengh + path_length[node][nodei]
+            else:
+                lengh = lengh + 10000
+        for nodej in genesB:
+            if node in path_length and nodej in path_length[node]:
+                lengh = lengh + path_length[node][nodej]
+            else:
+                lengh = lengh + 10000
+        nodes_shortest[node] = lengh
+    nodes_shortest = sorted(nodes_shortest.items(), key = lambda x:x[1], reverse= False)
+    return nodes_shortest
+
+#计算fc节点
+def fc(G, genesA, genesB):
+    node_dict = {}
+    for nodei in genesA:
+        for nodej in genesB:
+            if nodei != nodej :
+                splist = [p for p in nx.all_shortest_paths(G,nodei,nodej)]
+                nodes_num = {}
+                for lst in splist:
+                    for n in lst:
+                        if n!=nodei and n!=nodej:
+                            if n in nodes_num:
+                                nodes_num[n] = nodes_num[n] + 1
+                            else:
+                                nodes_num[n] = 1
+
+                for k in nodes_num.keys():
+                    nodes_num[k] = float(nodes_num[k])/len(splist)
+                for k in nodes_num.keys():
+                    if k in node_dict:
+                        node_dict[k] = node_dict[k] + nodes_num[k]
+                    else:
+                        node_dict[k] = nodes_num[k]
+    node_dict = sorted(node_dict.items(), key = lambda x:x[1], reverse= False)
+    return node_dict
+
+
 G = graphFromPPI()
 
 '''
@@ -153,25 +201,88 @@ with open(dict_file) as d:
         path_length[lines[0]] = lines[1]
 '''
 path_length = dict(nx.all_pairs_shortest_path_length(G))
-filepath = 'C:\\Users\\Administrator\\Desktop\\'
-filegene1 = 'gene1.txt'
-filegene2 = 'gene2.txt'
-targets = 'targets.txt'
+#shortest_path = dict(nx.all_shortest_paths(G))
+filepathgene = 'C:\\Users\\Administrator\\Desktop\\gene1\\'
+filepathtar = 'C:\\Users\\Administrator\\Desktop\\tar1\\'
 
-gene1_pd = pd.read_csv(filepath + filegene1)
-herb1_targets_list = list(gene1_pd['gene1'].apply(lambda x: str(x)))
-gene2_pd = pd.read_csv(filepath + filegene2)
-herb2_targets_list = list(gene2_pd['gene2'].apply(lambda x: str(x)))
-tars = pd.read_csv(filepath + targets)
-targets = list(tars['targets'].apply(lambda x :str(x)))
+#filegene1 = 'gene1.txt'
+#filegene2 = 'gene2.txt'
+#targets = 'targets.txt'
+genefilelist = []
+tarfilelist = []
+for root, dirs, files in os.walk(filepathgene):
+
+    for f in files:
+        filename = os.path.join(root, f)
+        genefilelist.append(filename)
+
+for root, dirs, files in os.walk(filepathtar):
+    for f in files:
+        filename = os.path.join(root, f)
+        tarfilelist.append(filename)
+
+#计算sab
+for i in range(0,len(genefilelist)-1):
+    for j in range(i+1,len(genefilelist)):
+        gene1_pd = pd.read_csv(genefilelist[i])
+        herb1_targets_list = list(gene1_pd['gene'].apply(lambda x: str(x)))
+        gene2_pd = pd.read_csv(genefilelist[j])
+        herb2_targets_list = list(gene2_pd['gene'].apply(lambda x: str(x)))
+        S_ab = Sab(G, herb1_targets_list, herb2_targets_list, path_length)
+        Sa = Saa(G, herb1_targets_list, path_length)
+        Sb = Saa(G, herb2_targets_list, path_length)
+        print(genefilelist[i],genefilelist[j],'S_ab', S_ab - (Sa + Sb) / 2.0)
+
+#计算zab
+for k in genefilelist:
+    for m in tarfilelist:
+        g_pd = pd.read_csv(k)
+        herb_targets_list = list(g_pd['gene'].apply(lambda x: str(x)))
+
+        tars = pd.read_csv(m)
+        targets = list(tars['targets'].apply(lambda x :str(x)))
+        dab = Sab(G, herb_targets_list, targets, path_length)
+        #print(str(k),str(m),'dab:',dab)
+        mean_rs,var_rs = zdct(herb_targets_list,targets,path_length)
+        zd = (dab - mean_rs)/var_rs
+        print(str(k),str(m),'zd:',zd)
 
 
-S_ab = Sab(G, herb1_targets_list, herb2_targets_list, path_length)
-Sa = Saa(G, herb1_targets_list, path_length)
-Sb = Saa(G, herb2_targets_list, path_length)
-print(S_ab - (Sa + Sb) / 2.0)
+#计算关键基因排序
+for i in range(0,len(genefilelist)-1):
+    for j in range(i+1,len(genefilelist)):
+        gene1_pd = pd.read_csv(genefilelist[i])
+        herb1_targets_list = list(gene1_pd['gene'].apply(lambda x: str(x)))
+        gene2_pd = pd.read_csv(genefilelist[j])
+        herb2_targets_list = list(gene2_pd['gene'].apply(lambda x: str(x)))
+        rs_s = shortest_nodes(G, herb1_targets_list, herb2_targets_list, path_length)
+
+        filen = str(i) + str(j) + '_shortest.csv'
+        with open(filen,'a') as f:
+            for (k,v) in rs_s:
+                f.write(str(k))
+                f.write(',')
+                f.write(str(v))
+                f.write('\n')
+                f.flush()
 
 
-mean_rs,var_rs = zdct(herb1_targets_list,targets,path_length)
-zd = (S_ab - mean_rs)/var_rs
-print(zd)
+
+#计算FC
+for i in range(0,len(genefilelist)-1):
+    for j in range(i+1,len(genefilelist)):
+        gene1_pd = pd.read_csv(genefilelist[i])
+        herb1_targets_list = list(gene1_pd['gene'].apply(lambda x: str(x)))
+        gene2_pd = pd.read_csv(genefilelist[j])
+        herb2_targets_list = list(gene2_pd['gene'].apply(lambda x: str(x)))
+        result_rs = fc(G, herb1_targets_list, herb2_targets_list)
+        print(i,genefilelist[i])
+        print(j,genefilelist[j])
+        filen = str(i) + str(j) + '_fc.csv'
+        with open(filen, 'a') as f:
+            for (k, v) in result_rs:
+                f.write(str(k))
+                f.write(',')
+                f.write(str(v))
+                f.write('\n')
+                f.flush()
