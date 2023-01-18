@@ -6,8 +6,8 @@ formula_generate.py为入口程序，生成的结果保留在当前文件夹下�
 
 2 参数选择
 程序中主要涉及的参数如下所示
-low_formula_num = 1#方剂最小中药数目
-up_formula_num = 20#方剂最大中药数目
+low_formula_num = 1 #方剂最小中药数目
+up_formula_num = 20 #方剂最大中药数目
 jun_w = 2 #君药的权重，下同
 chen_w = 1
 zuo_w = 1
