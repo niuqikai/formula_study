@@ -24,7 +24,7 @@ def nodeimportance(G):
 
 
 def symbol_sore_from_PPI():#根据PPI网络获取节点，返回SYMBOL和得分，示例TAR03276：0.00024348708566608384
-    filepath = 'D:/ctm_data/PPI蛋白网络数据/'
+    filepath = 'data/'
     filename = 'PPI_node_importance.csv'
     importance_file_ppi = pd.read_csv(filepath + filename)
     #Entrez,degree, degree_rs, pagerank_rs, eigenvector_rs, closeness_rs, betweenness_rs
@@ -47,7 +47,7 @@ def symbol_sore_from_PPI():#根据PPI网络获取节点，返回SYMBOL和得分�
 
 
 def symbol_target_sore_from_PPI():#根据PPI网络获取节点，返回SYMBOL和得分，示例CCNA2：0.00024348708566608384
-    filepath = 'D:/ctm_data/PPI蛋白网络数据/'
+    filepath = 'data/'
     filename = 'PPI_node_importance.csv'
     importance_file_ppi = pd.read_csv(filepath + filename)
     #Entrez,degree, degree_rs, pagerank_rs, eigenvector_rs, closeness_rs, betweenness_rs

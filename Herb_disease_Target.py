@@ -16,7 +16,7 @@ def formula_tareget(herb_mol_target,herbs):#返回方剂中对应的靶点,以en
 
 
 def ChinesesNameToEnglish():
-    filepath = 'D:\\ctm_data\\'
+    filepath = 'data/'
     filename = 'chinese_english_herb.csv'
     pd_chinese_english = pd.read_csv(filepath + filename,sep = '\t')
     chinese_english_herb_dict = {key:values for key, values in zip(pd_chinese_english['herb_cn_name'], pd_chinese_english['herb_en_name'])}
@@ -26,7 +26,7 @@ def ChinesesNameToEnglish():
 if  __name__ == '__main__':
     chinese_english_herb_dict = ChinesesNameToEnglish()
 
-    filepath = 'D:\\ctm_data\\TCMSP-数据\\'
+    filepath = 'data/'
     filename = 'TCMSP_DB_加工.xlsx'
 
     herb_mols =  di.herb_molecules(filepath, filename) #中药对应的成分

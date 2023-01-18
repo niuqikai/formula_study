@@ -50,12 +50,12 @@ def herb_pair_score_from_shangshi(filepath, filename,herb_mols):
 
 #herb_pair = herb_pair_score_from_data(filepath, filename)
 #writedicttodata('herb_pair_from_formula2.csv',herb_pair)
-filepath = 'D:\\ctm_data\\TCMSP-数据\\'
-filename = 'TCMSP_DB_加工.xlsx'
+#filepath = 'D:\\ctm_data\\TCMSP-数据\\'
+#filename = 'TCMSP_DB_加工.xlsx'
 #herb_mols =  di.herb_molecules(filepath, filename) #中药对应的成分
 
-filepath = 'D:\\ctm_data\\'
-filename = '叶天士.csv'
+#filepath = 'D:\\ctm_data\\'
+#filename = '叶天士.csv'
 #do.writestandardformula(filepath + filename,herb_mols)
 
 

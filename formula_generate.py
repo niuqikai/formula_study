@@ -7,6 +7,18 @@ import random as rd
 import PPI_analyse as ppi
 import pandas as pd
 
+low_formula_num = 1#方剂最小中药数目
+up_formula_num = 20#方剂最小中药数目加1
+jun_w = 2 #君药的权重，下同
+chen_w = 1
+zuo_w = 1
+shi_w = 1
+
+jun_p = 0.1 #君药比例 下同
+chen_p =  0.2
+zuo_p = 0.3
+shi_p =0.4
+
 #初始化方剂
 def innit_formula_seed(herb_score_dict, row_num , col_num_list):#herb_score_dict是中药分数字典,row_num为要生成的方剂数目,col_num为方剂中的中药数
     formula_herb_list = [] #方剂列表，包含有可能的row_num个方剂组成
@@ -29,14 +41,82 @@ def innit_formula_seed(herb_score_dict, row_num , col_num_list):#herb_score_dict
 
 #计算方剂得分
 def compute_formula_score(formula_list , herb_score_dict, pair_num_dict):
+    #基于君臣佐使,第一种排序方法。
+    dict_formula = {}
+    for h in formula_list:
+        dict_formula[h] = herb_score_dict[h]
+    #基于君臣佐使,第一种排序方法。
+
+
+    '''
+    #基于君臣佐使,第二种排序方法。
+    dict_formula = {}
+    formula_score_tmp = 0.0
+    formula_score_del = 0.0
+
+    for h in range(0,len(formula_list)):
+        for herb_i in range(len(formula_list) - 1):
+            for herb_j in range(herb_i + 1, len(formula_list)):
+                if (str(formula_list[herb_i]) + str(formula_list[herb_j])) in pair_num_dict or (str(formula_list[herb_j]) + str(formula_list[herb_i])) in pair_num_dict:
+                    if str(formula_list[herb_i]) + str(formula_list[herb_j]) in pair_num_dict:
+                        formula_score_tmp += herb_score_dict[formula_list[herb_i]] * herb_score_dict[
+                            formula_list[herb_j]] * pair_num_dict[str(formula_list[herb_i]) + str(formula_list[herb_j])]
+                    elif str(formula_list[herb_j]) + str(formula_list[herb_i]) in pair_num_dict:
+                        formula_score_tmp += herb_score_dict[formula_list[herb_i]] * herb_score_dict[
+                            formula_list[herb_j]] * pair_num_dict[str(formula_list[herb_j]) + str(formula_list[herb_i])]
+
+                if (herb_i!=h) and (herb_j!=h):
+                    if (str(formula_list[herb_i]) + str(formula_list[herb_j])) in pair_num_dict or (str(formula_list[herb_j]) + str(formula_list[herb_i])) in pair_num_dict:
+                        if str(formula_list[herb_i]) + str(formula_list[herb_j]) in pair_num_dict:
+                            formula_score_del += herb_score_dict[formula_list[herb_i]] * herb_score_dict[
+                                formula_list[herb_j]] * pair_num_dict[str(formula_list[herb_i]) + str(formula_list[herb_j])]
+                        elif str(formula_list[herb_j]) + str(formula_list[herb_i]) in pair_num_dict:
+                            formula_score_del += herb_score_dict[formula_list[herb_i]] * herb_score_dict[
+                                formula_list[herb_j]] * pair_num_dict[str(formula_list[herb_j]) + str(formula_list[herb_i])]
+
+        dict_formula[formula_list[h]] = formula_score_tmp - formula_score_del
+    # 基于君臣佐使,第二种排序方法。
+    '''
+    dict_formula = sorted(dict_formula.items(), key=lambda x: x[1], reverse=True)
+    formula_list_sorted = []
+    for (k,v) in dict_formula:
+        formula_list_sorted.append(k)
+
+    #针对君臣佐使加权
+    jun_list = []
+    chen_list = []
+    zuo_list = []
+    shi_list = []
+    junchenzuoshi_dict = {}
+
+    if len(formula_list_sorted) > 3:
+        jun_list = formula_list_sorted[0:int(jun_p*len(formula_list_sorted))]
+        chen_list = formula_list_sorted[int(jun_p*len(formula_list_sorted)):int((jun_p+chen_p)*len(formula_list_sorted))]
+        zuo_list = formula_list_sorted[int((jun_p+chen_p)*len(formula_list_sorted)):int((jun_p+chen_p+zuo_p)*len(formula_list_sorted))]
+        shi_list = formula_list_sorted[int((jun_p+chen_p+zuo_p)*len(formula_list_sorted)):]
+
+        for jun in jun_list:
+            junchenzuoshi_dict[jun] = jun_w
+        for chen in chen_list:
+            junchenzuoshi_dict[chen] = chen_w
+        for zuo in zuo_list:
+            junchenzuoshi_dict[zuo] = zuo_w
+        for shi in shi_list:
+            junchenzuoshi_dict[shi] = shi_w
+    #针对君臣佐使加权
+    else:
+        for h in formula_list_sorted:
+            junchenzuoshi_dict[h] = 1
+
+
     formula_score = 0.0
     for herb_i in range(len(formula_list)-1):
         for herb_j in range(herb_i + 1 , len(formula_list)):
             if (str(formula_list[herb_i])+str(formula_list[herb_j])) in pair_num_dict or (str(formula_list[herb_j])+str(formula_list[herb_i])) in pair_num_dict:
                 if str(formula_list[herb_i])+str(formula_list[herb_j]) in pair_num_dict:
-                    formula_score += herb_score_dict[formula_list[herb_i]] * herb_score_dict[formula_list[herb_j]] * pair_num_dict[str(formula_list[herb_i])+str(formula_list[herb_j])]
+                    formula_score += junchenzuoshi_dict[formula_list[herb_i]]*junchenzuoshi_dict[formula_list[herb_j]]*herb_score_dict[formula_list[herb_i]] * herb_score_dict[formula_list[herb_j]] * pair_num_dict[str(formula_list[herb_i])+str(formula_list[herb_j])]
                 elif str(formula_list[herb_j])+str(formula_list[herb_i]) in pair_num_dict:
-                    formula_score += herb_score_dict[formula_list[herb_i]] * herb_score_dict[formula_list[herb_j]] * pair_num_dict[str(formula_list[herb_j])+str(formula_list[herb_i])]
+                    formula_score += junchenzuoshi_dict[formula_list[herb_i]]*junchenzuoshi_dict[formula_list[herb_j]]*herb_score_dict[formula_list[herb_i]] * herb_score_dict[formula_list[herb_j]] * pair_num_dict[str(formula_list[herb_j])+str(formula_list[herb_i])]
             else:
                 formula_score = formula_score #- herb_score_dict[formula_list[herb_i]] * herb_score_dict[formula_list[herb_j]]
     return formula_score/len(formula_list)#(len(formula_list)*len(formula_list))
@@ -69,7 +149,7 @@ def variation(herbs_list,p,herb_score_dict):#变异
 def generate_formula_list(rows_num):#生成1-15的方剂列表
     rows_num_list = []
     for i in range(rows_num):
-        num = rd.randint(1,15)#从2味药到15味药
+        num = rd.randint(low_formula_num,up_formula_num)#从2味药到15味药
         rows_num_list.append(num)
     return rows_num_list
 
@@ -120,7 +200,7 @@ def Genetic_Algorithm(formulas_score_dict,herb_score_dict,herb_pair_from_data,fo
     variation_new_formulas_score_list1.extend(new_formulas_score_list2)
     new_formulas_score_dict = {key:value for (key,value) in variation_new_formulas_score_list1}
     while (len(new_formulas_score_dict.keys()) != formula_nums):#有时候会有相同的方剂，使得总体数量减少，重新生成，补齐
-        f_h_l = innit_formula_seed(herb_score_dict, 1, [rd.randint(1,15)])
+        f_h_l = innit_formula_seed(herb_score_dict, 1, [rd.randint(low_formula_num,up_formula_num)])
         f_score = compute_formula_score(f_h_l[0], herb_score_dict, herb_pair_from_data) * 10000
         new_formulas_score_dict[f_score] = f_h_l[0]
     return  new_formulas_score_dict
@@ -161,13 +241,13 @@ def formula_sorted_num(formula_all_dict,number=1000):
     return formula_num_sample_dict
 
 if __name__ == '__main__':
-    filepath = 'D:\\ctm_data\\TCMSP-数据\\'
+    filepath = 'data/'
     filename = 'TCMSP_DB_加工.xlsx'
 
     target_molecule = di.target_mol(filepath, filename, tar='0')#获取疾病对应的靶点和成分，tar=0 表示指定疾病的靶点和成分
     herb_mols =  di.herb_molecules(filepath, filename) #中药对应的成分
     targets_mol_herb = di.targets_mol_herb(filepath,filename)
-
+    print(targets_mol_herb)
     #从PPI网络中获取节点重要性
     degree,pagerank,eigenvector,closeness,betweenness = ppi.symbol_sore_from_PPI()
     #importance_list = [degree,pagerank,eigenvector,closeness,betweenness]
@@ -183,6 +263,9 @@ if __name__ == '__main__':
         herb_score['walk_score'] = herb_score.apply(lambda x: x['walk_score']/herb_score['walk_score'].sum(),axis=1)#归一化
         herb_score_dict = {key:values for key, values in zip(herb_score['herb_cn_name'], herb_score['walk_score'])}#转换为字典结构
 
+        #fname = 'all_libing_hsocre.csv'
+        #do.writedicttodata(fname, herb_score_dict)
+
         '''
         pair_score = 'herb_herb_mol_jaccard_gini'
         pair_s = di.data_from_excel_sheet(filepath + filename, pair_score)
@@ -191,7 +274,7 @@ if __name__ == '__main__':
         '''
 
         formula_nums = 1000
-        filepath = 'D:\\ctm_data\\'
+        filepath = 'data/'
         #filename = '叶天士新.csv'
         #filename = '第一批100首-药物组成.csv'
         #filename = '中成药数据库.csv'
@@ -211,13 +294,13 @@ if __name__ == '__main__':
 
         formula_score_dict = {}
         formulas = innit_formula_seed(herb_score_dict, formula_nums, rows_list)
-        #test_formula = ['茯苓','人参','桂枝','当归']
+        #test_formula = ['丹参','川芎','延胡索','杜仲','甘草','白术','苦杏仁','葛根','麻黄']
         #print(compute_formula_score(test_formula, herb_score_dict, herb_pair_from_data)*10000)
 
         for formula_list in formulas:
             formula_score_dict[compute_formula_score(formula_list, herb_score_dict, herb_pair_from_data)] = formula_list
         while(len(formula_score_dict.keys())!=formula_nums):
-            f_h_l = innit_formula_seed(herb_score_dict, 1, [rd.randint(1, 15)])
+            f_h_l = innit_formula_seed(herb_score_dict, 1, [rd.randint(low_formula_num,up_formula_num)])
             f_score = compute_formula_score(f_h_l[0], herb_score_dict, herb_pair_from_data)
             formula_score_dict[f_score] = f_h_l[0]
 
@@ -225,6 +308,9 @@ if __name__ == '__main__':
         all_final_formula_score_dict = {}
 
         #final_formula_score_dict = {}#最终迭代的1000个方剂极其分数
+
+
+
         max_score = -99999
         for k in range(1000):
             print("第"+str(k)+"迭代")
@@ -236,6 +322,6 @@ if __name__ == '__main__':
 
         final_formula_score_dict = formula_sorted_num(all_final_formula_score_dict)
         #final_formula_score_dict = formula_score_dict
-        write_file_name = 'formulascore_' + str(importance_list_name[importance_ix]) + '.csv'
+        write_file_name = 'Alzheimer_' + str(importance_list_name[importance_ix]) + 'dl018.csv'
         do.writeformulatodata(write_file_name,final_formula_score_dict)
         #do.writeformulatodata('formulascore_RA_sab.csv',final_formula_score_dict)

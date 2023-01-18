@@ -90,28 +90,5 @@ def connected_components_infor(nodes, G):
         rsnodes[i] = [aspl,ac]
     return rsnodes
 
-if __name__=="__main__":
-
-    #建立图结构
-    #filepath = "D:/network_ctm/"
-    #filename = "type1-network.csv"
-    filepath = 'D://libing//net-module(1)//新建文件夹 (2)//'
-
-    for root, dirs, files in os.walk(filepath, topdown=False):
-        for name in files:
-            filename = os.path.join(root, name)
-
-            G = graphFromfile('' , filename)
-            print("G completed")
-            print(G.edges())
-            #计算节点重要性
-            degree,degree_rs,pagerank_rs,eigenvector_rs,closeness_rs,betweenness_rs  = getNodeimpotance(G)
-            file_wr = str(name) + "file_wr2.csv"
-            writeNodeinfortofile(filepath + file_wr, G, degree,degree_rs,pagerank_rs,eigenvector_rs,closeness_rs,betweenness_rs)
-
-            #nodes = copy.deepcopy(G.nodes())
-            #rs = connected_components_infor(nodes, G)
-
-            #writeNodeinfortofile(filepath + file_wr, rs)
 
 

@@ -19,7 +19,7 @@ def up_down_genes_fromPPI(herbs_list,up_down_num,disease_target_list,name):
     Nodeimpdict = {'degree': degree, 'pagerank':pagerank, 'eigenvector':eigenvector, 'closeness':closeness, 'betweenness':betweenness}
 
 
-    filepath = 'D:/ctm_data/'
+    filepath = 'data/'
     filename = 'herb_PPI_score.csv'
     herbs_score_dict = {}
     herbs_data = pd.read_csv(filepath + filename,encoding='ansi')
@@ -145,7 +145,7 @@ def dirES_top_down_num(filedir,nodes_symbolid,up_down_num):
 
 if  __name__ == '__main__':
     #herbs_list = ['麻黄','桂枝','甘草','白芍','川芎']
-    filepath = 'D:\\ctm_data\\TCMSP-数据\\'
+    filepath = 'data/'
     filename = 'TCMSP_DB_加工.xlsx'
 
     #获取对应疾病的symbolid靶点
@@ -155,5 +155,5 @@ if  __name__ == '__main__':
     nodes_pd_target = gene_symbol_entrezid[gene_symbol_entrezid['target'].isin(list(nodes_list))]
     nodes_symbolid = nodes_pd_target['symbol']
 
-    filedir = 'D:\\formula_result\\2结果展示'
+    filedir = 'data/rs/'
     dirES_top_down_num(filedir,nodes_symbolid,-1)

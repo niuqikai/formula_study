@@ -38,7 +38,7 @@ def gene_herbnum_formula(herbs, herb_score_dict, pair_num_dict):#生成固定组
     #return formula_num_dict
 
 def ChinesesNameToEnglish():
-    filepath = 'D:\\ctm_data\\'
+    filepath = 'data/'
     filename = 'chinese_english_herb.csv'
     pd_chinese_english = pd.read_csv(filepath + filename,sep = '\t')
     chinese_english_herb_dict = {key:values for key, values in zip(pd_chinese_english['herb_cn_name'], pd_chinese_english['herb_en_name'])}
@@ -46,8 +46,10 @@ def ChinesesNameToEnglish():
 
 
 def formula_num_herbs_num(chinese_english_herb_dict):#计算Top50的方剂中药物分布，药对分布，方剂数量分布
-    filepath = 'D:\\formula_result\\1算法设计\\5方剂分析\\'
-    filename = 'atherosclerosis.csv'
+    #filepath = 'D:\\formula_result\\1算法设计\\5方剂分析\\'
+    #filename = 'atherosclerosis.csv'
+    filepath = 'D:\\network_ctm\\formula_study\\'
+    filename = 'Atherosclerosis_pagerankob30.csv'
 
     herbs_dict = {} #方剂中中药数量分布
     formula_num_dict = {}#方剂数量分布
@@ -118,7 +120,7 @@ def formula_num_herbs_num(chinese_english_herb_dict):#计算Top50的方剂中药
         print()
     '''
 
-def formula_tareget(herb_mol_target,herbs):#返回方剂中对应的靶点,以
+def formula_tareget(herb_mol_target,herbs):#返回方剂中对应的靶点
     targets = herb_mol_target[herb_mol_target['herb_cn_name'].isin(herbs)]
     herb_targets = targets['TARGET_ID']
     pd_gene_symbol = di.targetid_SYMBOL_pd()
@@ -136,7 +138,7 @@ if  __name__ == '__main__':
     chinese_english_herb_dict = ChinesesNameToEnglish()
     formula_num_herbs_num(chinese_english_herb_dict)
 
-    filepath = 'D:\\ctm_data\\TCMSP-数据\\'
+    filepath = 'data/'
     filename = 'TCMSP_DB_加工.xlsx'
 
     target_molecule = di.target_mol(filepath, filename, tar='0')#获取疾病对应的靶点和成分，tar=0 表示制定疾病的靶点和成分
@@ -161,10 +163,10 @@ if  __name__ == '__main__':
     p_s_dict = {(key1 ,key2):values for key1, key2 ,values in zip(p_s['herb1'], p_s['herb2'], p_s['cos_mol'])}#转换为字典结构
     '''
 
-    filepath_herbpair = 'D:\\ctm_data\\'
+    filepath_herbpair = 'data/'
     #filename = '叶天士新.csv'
     #filename = '第一批100首-药物组成.csv'
-    filename_herbpair = '中成药数据库.csv'
+    filename_herbpair = '伤寒金匮.csv'
 
     herb_pair_from_data = hpff.herb_pair_score_from_data(filepath_herbpair,filename_herbpair,herb_mols)
     formula_score_dict = {}

@@ -22,14 +22,22 @@ def herb_disease_jaccard_gini(targ_mol_herb):#计算中药和疾病之前的jacc
     rs = jaccard_gini(jac_gini_matrix, A, B, C)
 
 def herb_herb_jaccard_gini(herb_mol_target):#计算中药与中药之间成分和靶点之间的
+    h_w_dict,m_t_dict,dict_herb_mol_vector,dict_herb_tar_vector,dict_herb_mol_vector_normal,dict_herb_tar_vector_normal = get_all_herb_mol_tar_vector(herb_mol_target)
+
     herb_pairs = all_herb_pairs(herb_mol_target)
     mols_vector = list(herb_mol_target['MOL_ID'].dropna().unique())
     tars_vector = list(herb_mol_target['TARGET_ID'].dropna().unique())
-    dict_herb_mol_vector,dict_herb_tar_vector,dict_herb_mol_vector_normal,dict_herb_tar_vector_normal = get_all_herb_mol_tar_vector(herb_mol_target)
+
+    #如果计算中药向量，使用随机随机游走方法则加上这段
+    herb_mol_target['col_score'] = herb_mol_target['MOL_ID'].apply(lambda x: h_w_dict[x] if x in h_w_dict else 0 )
+    herb_mol_target['tar_score'] = herb_mol_target['TARGET_ID'].apply(lambda x: m_t_dict[x] if x in m_t_dict else 0 )
+    #如果计算中药向量，使用随机随机游走方法则加上这段
+
     for (herb1,herb2) in herb_pairs:
         h_h_m = herb_mol_target[herb_mol_target['herb_cn_name'].isin([herb1,herb2])]
         herb_a = herb_mol_target[herb_mol_target['herb_cn_name']==herb1]
         herb_b = herb_mol_target[herb_mol_target['herb_cn_name']==herb2]
+
 
         #获取中药的成分靶点向量
         herb_a_mol_vector = dict_herb_mol_vector[herb1]
@@ -41,33 +49,63 @@ def herb_herb_jaccard_gini(herb_mol_target):#计算中药与中药之间成分�
         herb_a_tar_vector_normal = dict_herb_tar_vector_normal[herb1]
         herb_b_tar_vector_normal = dict_herb_tar_vector_normal[herb2]
 
+
         #根据成分计算各种指标
         A_mol_num = herb_a['MOL_ID'].dropna().nunique()
         B_mol_num = herb_b['MOL_ID'].dropna().nunique()
         A_B_mol_num = A_mol_num + B_mol_num - h_h_m['MOL_ID'].dropna().nunique()#中药A和中药B的交集
+
+
+        '''
+        # 如果计算中药向量，使用随机随机游走方法则加上这段
+        herb_a_dup = herb_a[['MOL_ID','col_score']].drop_duplicates()
+        A_mol_num = herb_a_dup['col_score'].sum()
+        herb_b_dup = herb_b[['MOL_ID','col_score']].drop_duplicates()
+        B_mol_num = herb_b_dup['col_score'].sum()
+        herb_a_b_dup = h_h_m[['MOL_ID','col_score']].drop_duplicates()
+        A_B_mol_num = A_mol_num + B_mol_num - herb_a_b_dup['col_score'].sum() # 中药A和中药B的交集
+        # 如果计算中药向量，使用随机随机游走方法则加上这段
+        '''
+
+
         mol_jaccard_herbs = float(A_B_mol_num)/h_h_m['MOL_ID'].dropna().nunique()
+        # 如果计算中药向量，使用随机随机游走方法则加上这句
+        #mol_jaccard_herbs = float(A_B_mol_num)/herb_a_b_dup['col_score'].sum()
         mol_gini_herb = float(A_B_mol_num)/min(A_mol_num,B_mol_num)
         if herb_a_mol_vector_normal*herb_b_mol_vector_normal == 0:
             cos_mol_a_b = 0
         else:
             cos_mol_a_b = np.dot(herb_a_mol_vector,herb_b_mol_vector)/(herb_a_mol_vector_normal*herb_b_mol_vector_normal)
 
-        #根据靶点计算各种指标
+        '''
+        #如果计算中药向量，使用随机随机游走方法则加上这段
+        herb_a_dup = herb_a[['TARGET_ID', 'tar_score']].drop_duplicates()
+        A_tar_num = herb_a_dup['tar_score'].sum()
+        herb_b_dup = herb_b[['TARGET_ID', 'tar_score']].drop_duplicates()
+        B_tar_num = herb_b_dup['tar_score'].sum()
+        herb_a_b_dup = h_h_m[['TARGET_ID', 'tar_score']].drop_duplicates()
+        A_B_tar_num = A_tar_num + B_tar_num - herb_a_b_dup['tar_score'].sum()  # 中药A和中药B的交集
+        #如果计算中药向量，使用随机随机游走方法则加上这段
+        '''
+
         A_tar_num = herb_a['TARGET_ID'].dropna().nunique()
         B_tar_num = herb_b['TARGET_ID'].dropna().nunique()
         A_B_tar_num = A_tar_num + B_tar_num - h_h_m['TARGET_ID'].dropna().nunique()  # 中药A和中药B的交集
+
         if float(A_B_tar_num) == 0:
             tar_jaccard_herbs = 0
             tar_gini_herb = 0
         else:
             tar_jaccard_herbs = float(A_B_tar_num) / h_h_m['TARGET_ID'].dropna().nunique()
+            # 如果计算中药向量，使用随机随机游走方法则加上这句
+            #tar_jaccard_herbs = float(A_B_tar_num) / herb_a_b_dup['tar_score'].sum()
             tar_gini_herb = float(A_B_tar_num) / min(A_tar_num, B_tar_num)
         if herb_a_tar_vector_normal*herb_b_tar_vector_normal == 0:
             cos_tar_a_b = 0
         else:
             cos_tar_a_b = np.dot(herb_a_tar_vector,herb_b_tar_vector)/(herb_a_tar_vector_normal*herb_b_tar_vector_normal)
         datalist = [herb1,herb2,mol_jaccard_herbs,mol_gini_herb,tar_jaccard_herbs,tar_gini_herb,cos_mol_a_b,cos_tar_a_b]
-        filename = 'herb_herb_walkscore_mol_jaccard_gini.csv'
+        filename = 'herb_herb_walkscore_mol_jaccard_gini_pagerank_w.csv'
         writelisttodata(filename, datalist)
 
 def get_all_herb_mol_tar_vector(herb_mol_target):#毎味中药的成分和靶点向量
@@ -106,11 +144,11 @@ def get_all_herb_mol_tar_vector(herb_mol_target):#毎味中药的成分和靶点
         count_tar = 0
         for j in range(len(herb_mol_vector)):
             if mols_vector[j] in herb_i_mols:
-                herb_mol_vector[j] = 1 ##h_w_dict[mols_vector[j]] #1 #随机游走分数，否则默认为1
+                herb_mol_vector[j] = 1#h_w_dict[mols_vector[j]] #1 #随机游走分数，否则默认为1
                 count_mol = count_mol + 1
         for k in range(len(herb_tar_vector)):
             if tars_vector[k] in herb_i_tars:
-                herb_tar_vector[k] = 1 #m_t_dict[tars_vector[k]] #1 #随机游走分数，否则默认为1
+                herb_tar_vector[k] = 1#m_t_dict[tars_vector[k]] #1 #随机游走分数，否则默认为1
                 count_tar = count_tar + 1
         dict_herb_mol_vector[herbs_name[i]] = herb_mol_vector
         dict_herb_tar_vector[herbs_name[i]] = herb_tar_vector
@@ -424,7 +462,7 @@ def herb_walk_score_interation(targets_mol_herb,importance_score):#计算随机�
 
 
 if __name__ == '__main__':
-    filepath = 'D:\\ctm_data\\TCMSP-数据\\'
+    filepath = 'data/'
     filename = 'TCMSP_DB_加工.xlsx'
 
     targ_mol_herb = di.targets_mol_herb(filepath,filename)#疾病靶点对应的成分和中药
@@ -461,7 +499,7 @@ if __name__ == '__main__':
     p_s_dict = {(key1 ,key2):values for key1, key2 ,values in zip(p_s['herb1'], p_s['herb2'], p_s['cos_mol'])}#转换为字典结构
     '''
 
-    SabFromPPI(herb_mol_target)
-    #herb_herb_jaccard_gini(herb_mol_target)
+    #SabFromPPI(herb_mol_target)
+    herb_herb_jaccard_gini(herb_mol_target)
     #get_all_herb_mol_tar_vector(herb_mol_target)
     #herb_mol_target.to_csv("herb_mol_target.csv")
