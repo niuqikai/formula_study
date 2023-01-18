@@ -1,4 +1,5 @@
 代码使用说明
+
 1 如何根据疾病筛选方剂
 formula_generate.py为入口程序，生成的结果保留在当前文件夹下，结果会保留排序前50方剂的方剂和随机生成的5个方剂。
 'diseasename/XX.csv'为筛选疾病的对应的靶点如'diseasename/diseasename_Alzheimer.csv'下面表示Alzheimer以及对应的靶点
